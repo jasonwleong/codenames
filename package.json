@@ -1,0 +1,22 @@
+{
+  "name": "codenames",
+  "version": "1.0.0",
+  "description": "Final project for CS 158A in Spring 18 at SJSU with Professor Mortezaei. Created by Jason Leong, Patrick Leung, and Hangyi Gu.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://jasonwleong@github.com/jasonwleong/codenames.git"
+  },
+  "author": "Jason Leong",
+  "contributors": [
+    "Patrick Leung <pleung1415@gmail.com>",
+    "Hangyi Gu <hgu555@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jasonwleong/codenames/issues"
+  },
+  "homepage": "https://github.com/jasonwleong/codenames#readme"
+}
