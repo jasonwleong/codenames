@@ -5,11 +5,14 @@ var io = require('socket.io')(http);
 var clients = [];
 var messages = [];
 var votes = [];
+var hint;
 
 app.get('/', function(req, res) {
   res.sendFile(__dirname + '/index.html');
 });
 
+
+// very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
 io.on('connection', function(socket) {
 
 	var nickname;
@@ -85,12 +88,18 @@ io.on('connection', function(socket) {
 					return;
 				}
 
-				message += `has voted for "${msg[1]}"`;
-				votes.push({
-					id: socket.id,
-					nickname: nickname,
-					word: msg[1]
-				});
+				// check if vote exists in dictionary of words
+				// if (vote in dictionary) {
+					message += `has voted for "${msg[1]}"`;
+					votes.push({
+						id: socket.id,
+						nickname: nickname,
+						word: msg[1]
+					});
+				// } else {
+				// 	socket.emit('server message', `invalid vote: "${msg[1]}" not found in dictionary`);
+				// 	return;
+				// }
 				break;
 
 			case 'hint':
@@ -101,7 +110,7 @@ io.on('connection', function(socket) {
 							socket.emit('server message', `invalid command: you are not the spymaster`);
 							return;
 						}
-						break;
+						break; // breaks out of for loop, not case statement
 					}
 				}
 
@@ -111,8 +120,15 @@ io.on('connection', function(socket) {
 					return;
 				}
 
-				message += `has hinted the word: "${msg[1]}"`;
-				break;
+				// check if hint exists in dictionary of words
+				// if (hint in dictionary) {
+					hint = msg[1];
+					message += `has hinted the word: "${msg[1]}"`;
+				// } else {
+				// 	socket.emit('server message', `invalid hint: "${msg[1]}" not found in dictionary`);
+				// 	return;
+				// }
+				// break;
 
 
 			default:
