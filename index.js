@@ -21,9 +21,9 @@ io.on('connection', function(socket) {
 		nickname = nick;
 		console.log(`Connection: ${socket.id} \t as ${nickname}`);
 		clients.push({
-			id:socket.id,
-			nickname:nickname,
-			role:""
+			id: socket.id,
+			nickname: nickname,
+			role: ""
 		});
 
 		// Display previous messages
@@ -35,10 +35,9 @@ io.on('connection', function(socket) {
 		var message = nickname + ' connected';
 		io.emit('connectAndDisconnect', message);
 		messages.push({
-			message:message,
-			type:'connectAndDisconnect'
+			message: message,
+			type: 'connectAndDisconnect'
 		});
-		console.log(clients);
 	});
 
 	// receive disconnections
@@ -57,10 +56,9 @@ io.on('connection', function(socket) {
 		var message = nickname + ' disconnected';
 		io.emit('connectAndDisconnect', message);
 		messages.push({
-			message:message,
-			type:'connectAndDisconnect'
+			message: message,
+			type: 'connectAndDisconnect'
 		});
-		console.log(clients);
 	});
 
 	// receive chat messages
@@ -69,30 +67,62 @@ io.on('connection', function(socket) {
 		var message = nickname + ": " + msg;
 		io.emit('chat message', message);
 		messages.push({
-			message:message,
-			type:'chat message'
+			message: message,
+			type: 'chat message'
 		});
 	});
 
 	// receive command messages
-	socket.on('command', function(msg) {	// msg = "/vote Dinosaur"
-		msg = msg.split(' ');				// msg = ["/vote", "Dinosaur"]
+	socket.on('command', function(msg) {	// msg => "/vote Dinosaur"
+		msg = msg.split(' ');				// msg => ["/vote", "Dinosaur"]
 		var message = nickname + " ";
-		switch(msg[0].substring(1)) {		// switch sttement for "vote"
+		switch(msg[0].substring(1)) {		// switch statement for "vote"
+
 			case 'vote':
-				message += 'has voted for "' + msg[1] + '"';
+				// check # params
+				if (msg.length != 2) {
+					socket.emit('server message', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
+					return;
+				}
+
+				message += `has voted for "${msg[1]}"`;
+				votes.push({
+					id: socket.id,
+					nickname: nickname,
+					word: msg[1]
+				});
 				break;
+
 			case 'hint':
-				message += 'has hinted the word: "' + msg[1] + '"';
+				// check if client is of role "spymaster" (refactor later -> make clients into dictionary)
+				for (var i = 0; i < clients.length; i++) {
+					if (clients[i].id == socket.id) {
+						if (clients[i].role != "spymaster") {
+							socket.emit('server message', `invalid command: you are not the spymaster`);
+							return;
+						}
+						break;
+					}
+				}
+
+				// check # params
+				if (msg.length != 2) {
+					socket.emit('server message', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
+					return;
+				}
+
+				message += `has hinted the word: "${msg[1]}"`;
 				break;
+
+
 			default:
-				socket.emit('server message', 'invalid command: "' + msg[0].substring(1) + '"'; // sent only to client
+				socket.emit('server message', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
 				return;
 		}
 		io.emit('command', message);
 		messages.push({
-			message:message,
-			type:'command'
+			message: message,
+			type: 'command'
 		});
 	});
 });

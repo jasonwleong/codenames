@@ -35,6 +35,7 @@
 
                 $('form').submit(function(){
                     if ($('#m').val()[0] == "/") {      // Message is a command
+                        
                         socket.emit('command', $('#m').val());
                     }
                     else {                              // Message is a chat message
