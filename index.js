@@ -18,10 +18,11 @@ io.on('connection', function(socket) {
 		// Get user's nickname and add him to clients array
 		nickname = nick;
 		console.log(`Connection: ${socket.id} \t as ${nickname}`);
-		// clients.push({
-		// 	id:socket.id,
-		// 	nickname:nickname
-		// });
+		clients.push({
+			id:socket.id,
+			nickname:nickname,
+			role:""
+		});
 
 		// Display previous messages
 		for (var i = 0; i < messages.length; i++) {
@@ -35,11 +36,16 @@ io.on('connection', function(socket) {
 			message:message,
 			type:'connectAndDisconnect'
 		});
+		console.log(clients);
 	});
 
 	socket.on('disconnect', function() {
 
 		console.log(`Disconnected: ${socket.id} \t (${nickname})`);
+
+		// clients = clients.filter(function(obj) {
+		// 	return obj.id != socket.id;
+		// })
 
 		// Display disconnection message
 		var message = nickname + ' disconnected';
@@ -48,6 +54,7 @@ io.on('connection', function(socket) {
 			message:message,
 			type:'connectAndDisconnect'
 		});
+		console.log(clients);
 	});
 
 	socket.on('chat message', function(msg) {
