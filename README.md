@@ -6,13 +6,13 @@ Final project for CS 158A in Spring 18 at SJSU with Professor Mortezaei. Created
 ## server
 ```
 npm install
-nodemon server.js
+nodemon server/server.js
 ```
 
 ## client
 ```
 npm install
-nodemon client.js
+nodemon client/client.js
 ```
 
 # setup on aws
