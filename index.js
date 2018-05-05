@@ -43,9 +43,11 @@ io.on('connection', function(socket) {
 
 		console.log(`Disconnected: ${socket.id} \t (${nickname})`);
 
-		// clients = clients.filter(function(obj) {
-		// 	return obj.id != socket.id;
-		// })
+		for (var i = 0; i < clients.length; i++) {
+			if (clients[i].id == socket.id) {
+				clients.splice(i, 1);
+			}
+		}
 
 		// Display disconnection message
 		var message = nickname + ' disconnected';
