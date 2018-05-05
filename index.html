@@ -17,7 +17,7 @@
     <body>
         <ul id="messages"></ul>
         <form action="">
-            <input id="m" autocomplete="off" />
+            <input id="m" autocomplete="off" required />
             <button>Send</button>
         </form>
 
@@ -25,23 +25,45 @@
         <script src="/socket.io/socket.io.js"></script>
         <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
         <script>
-            while(!nick) {
+            while(!nick) {                              // require a nickname
                 var nick = prompt('Enter a nickname:', 'Onipy'); 
             }
             $(function () {
                 var socket = io();
-                socket.emit('newUser', nick);
+
+                socket.emit('newUser', nick);           // set nickname in server
+
+                $('form').submit(function(){
+                    if ($('#m').val()[0] == "/") {      // Message is a command
+                        socket.emit('command', $('#m').val());
+                    }
+                    else {                              // Message is a chat message
+                        socket.emit('chat message', $('#m').val());
+                    }
+                    $('#m').val('');                    // reset message value
+                    return false;
+                });
+
+                // \/ FROM SERVER \/
+
+                // get client-side messages from server
+                socket.on('server message', function(msg) {
+                    $('#messages').append($('<li style="font-style:italic;color:purple;">').text(msg));
+                });
+
+                // get connect/disconnect messages
                 socket.on('connectAndDisconnect', function(msg) {
                     $('#messages').append($('<li style="font-style:italic;color:red;">').text(msg));
                 });
 
-                $('form').submit(function(){
-                    socket.emit('chat message', $('#m').val());
-                    $('#m').val('');
-                    return false;
-                });
+                // get chat messages
                 socket.on('chat message', function(msg) {
                     $('#messages').append($('<li>').text(msg));
+                });
+
+                // get command messages
+                socket.on('command', function(msg) {
+                    $('#messages').append($('<li style="font-style:italic;color:green;">').text(msg));
                 });
             });
         </script>
