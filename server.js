@@ -46,7 +46,8 @@ io.on('connection', function(socket) {
 		clients.push({
 			id: socket.id,
 			nickname: nickname,
-			role: ""
+			role: "",
+			team: ""
 		});
 
 		// Display previous messages
@@ -149,6 +150,28 @@ io.on('connection', function(socket) {
 				// 	return;
 				// }
 				// break;
+
+			case 'players':
+				if (msg.length > 1) {
+					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 0 arguments`);
+					return;
+				}
+				for (var i = 0; i < clients.length; i++) { // ie. "[Red] Onipy (Spymaster)"
+					socket.emit('client', `[${clients["team"]}] ${clients["nickname"]} (${clients["role"]})`);
+				}
+				return;
+
+			case 'help':
+				if (msg.length > 1) {
+					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 0 arguments`);
+					return;
+				}
+				socket.emit('client', "/vote [word] : Players(excluding the Spymaster) may use /vote to vote for the word that they want to guess");
+				socket.emit('client', "/hint [word] : Spymaster may use the /hint command to send their hint to their team");
+				socket.emit('client', "/players : Use /players to view the currently connected players");
+				socket.emit('client', "/help : Instantly wins the game for you and your team");
+				return;
+
 
 			default:
 				socket.emit('client', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
