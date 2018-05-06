@@ -43,28 +43,30 @@ io.on('connection', function(socket) {
 		// Get user's nickname and add him to clients array
 		nickname = nick;
 		console.log(`Connection: ${socket.id} \t as ${nickname}`);
-		clients.push({
+		var newPlayer = {
 			id: socket.id,
 			nickname: nickname,
-			role: "",
-			team: ""
-		});
-
-		// Display previous messages
-		for (var i = 0; i < messages.length; i++) {
-			socket.emit(String(messages[i].type), messages[i].text);
+			role: "minion",	// to be updated
+			team: "red"	// to be updated
 		}
+		clients.push(newPlayer);	
 
 		// Display connection message
-		var message = nickname + ' connected';
+		var message = nickname + ' has connected';
 		io.emit('message', {
 			type: 'server',
 			text: message
 		});
+		io.emit('newPlayer', newPlayer);
 		messages.push({
 			type: 'server',
 			text: message
 		});
+
+		// Display previous messages
+		for (var i = 0; i < messages.length; i++) {
+			socket.emit('message', messages[i]);
+		}
 	});
 
 	// receive disconnections

@@ -1,6 +1,6 @@
 // while(!nick) {                              // require a nickname
     // var nick = prompt('Enter a nickname:', 'Onipy');
-    var nick = "hello";
+    var nick = "hi";
 // }
 // clean up? rename or make error messages red?
 var clientOnlyMessages = ['error', 'server', 'players', 'help'];
