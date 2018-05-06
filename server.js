@@ -126,7 +126,7 @@ io.on('connection', function(socket) {
 
 							// adjust message
 							Object.assign(response, {
-								type: 'vote',
+								type: 'server',
 								text: `${nickname} has voted for "${inputs[1]}"`
 							});
 						// } else {
@@ -158,7 +158,7 @@ io.on('connection', function(socket) {
 						// if (hint in dictionary) {
 							hint = inputs[1];
 							Object.assign(response, {
-								type: 'hint',
+								type: 'server',
 								text: `${nickname} has hinted the word "${hint}"`
 							});
 						// } else {
@@ -186,107 +186,6 @@ io.on('connection', function(socket) {
 		// do this regardless
 		messages.push(msg);
 		io.emit('message', response);
-	});
-
-	// TODO @pat: clean up stuff below
-
-	// receive chats
-	socket.on('chat', function(msg) {
-		// refactor later -> add disallowing of messages that are all spaces
-		var message = nickname + ": " + msg;
-		io.emit('chat', message);
-		messages.push({
-			message: message,
-			type: 'chat'
-		});
-	});
-
-	// receive command messages
-	socket.on('command', function(msg) {	// msg => "/vote Dinosaur"
-		msg = msg.split(' ');				// msg => ["/vote", "Dinosaur"]
-		var message = nickname + " ";
-		switch(msg[0].substring(1)) {		// switch statement for "vote"
-
-			case 'vote':
-				// check # params
-				if (msg.length != 2) {
-					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
-					return;
-				}
-
-				// check if vote exists in dictionary of words
-				// if (vote in dictionary) {
-					message += `has voted for "${msg[1]}"`;
-					votes.push({
-						id: socket.id,
-						nickname: nickname,
-						word: msg[1]
-					});
-				// } else {
-				// 	socket.emit('client', `invalid vote: "${msg[1]}" not found in dictionary`);
-				// 	return;
-				// }
-				break;
-
-			case 'hint':
-				// check if client is of role "spymaster" (refactor later -> make clients into dictionary)
-				for (var i = 0; i < clients.length; i++) {
-					if (clients[i].id == socket.id) {
-						if (clients[i].role != "spymaster") {
-							socket.emit('client', `invalid command: you are not the spymaster`);
-							return;
-						}
-						break; // breaks out of for loop, not case statement
-					}
-				}
-
-				// check # params
-				if (msg.length != 2) {
-					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
-					return;
-				}
-
-				// check if hint exists in dictionary of words
-				// if (hint in dictionary) {
-					hint = msg[1];
-					message += `has hinted the word: "${msg[1]}"`;
-				// } else {
-				// 	socket.emit('client', `invalid hint: "${msg[1]}" not found in dictionary`);
-				// 	return;
-				// }
-				// break;
-
-			case 'players':
-				if (msg.length > 1) {
-					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 0 arguments`);
-					return;
-				}
-				for (var i = 0; i < clients.length; i++) { // ie. "[Red] Onipy (Spymaster)"
-					socket.emit('client', `[${clients["team"]}] ${clients["nickname"]} (${clients["role"]})`);
-				}
-				return;
-
-			case 'help':
-				if (msg.length > 1) {
-					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 0 arguments`);
-					return;
-				}
-				socket.emit('client', "/vote [word] : Players(excluding the Spymaster) may use /vote to vote for the word that they want to guess");
-				socket.emit('client', "/hint [word] : Spymaster may use the /hint command to send their hint to their team");
-				socket.emit('client', "/players : Use /players to view the currently connected players");
-				socket.emit('client', "/help : Instantly wins the game for you and your team");
-				return;
-
-
-			default:
-				socket.emit('client', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
-				return;
-		}
-		io.emit('command', message);
-		messages.push({
-			message: message,
-			type: 'command'
-		});
 	});
 });
 
