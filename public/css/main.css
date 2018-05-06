@@ -9,16 +9,18 @@
 	border: 1px solid blue;
 }
 
-#chat {
-	border: 1px solid yellow;
+/* PAGE */
+html {
+	height: 100%;
 }
 
-/* PAGE */
 body {
 	/*margin: 0px 8px 0px 0px;*/
 	font: 13px Helvetica, Arial;
+	height: 100%;	/* locks app to single page */
 	margin: 0px;
 }
+
 .clearfix:after {
     content: "";
     clear: both;
@@ -30,6 +32,7 @@ body {
 	color: darkgreen;
 	font-size: 300%; 
 	text-align: center;
+	margin: 0;
 }
 
 h2 {
@@ -60,10 +63,15 @@ button:active {
 }
 
 /* SECTIONS */
+#header {
+	height: 10%;
+}
+
 .left-content,
 .main-content, 
 .right-content {
 	float: left;
+	height: 90%;
 }
 
 .left-content {
@@ -78,7 +86,6 @@ button:active {
 .main-content {
 	width: 50%;
 	overflow-x: visible;
-
 }
 
 /* PLAYERS */
@@ -92,9 +99,19 @@ input.ready-check {
 }
 
 /* WORD BOARD (and buttons/inputs) */
+#word-board {
+	height: 45%;
+}
+
 #word-board input[type=button] {
-    padding: 4% 10%;
+    padding: 0;
+    width: 20%;
+    height: 100%;
     float: left; /* floats buttons next to each other */
+}
+
+.word-btn-row {
+	height: 20%;
 }
 
 .word-btn-row input:not(:last-child) {
@@ -102,8 +119,17 @@ input.ready-check {
 }
 
 /* CHAT */
+#chat {
+	height: 55%;
+}
+
 #chat-history {
-	height: 100px;
+	max-height: 90%;
+	overflow-y: scroll;
+}
+
+#chat-input {
+	height: 10%;
 }
 
 #messages { 
