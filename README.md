@@ -1,13 +1,13 @@
-# codenames
+# Codenames
 Final project for CS 158A (Computer Networks) in Spring 18 at SJSU with Professor Mortezaei. Created by Jason Leong, Patrick Leung, and Hangyi Gu.
 
-# setup 
+# Setup 
 ```
 npm install
 nodemon server.js
 ```
 
-# setup on aws
+# Setup on AWS EC2
 - install c compiler (if not present)
 - install node (curl nvm -> nvm install node)
 - cd to this repo

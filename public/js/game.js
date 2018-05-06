@@ -13,22 +13,22 @@ $(function () {
             socket.emit('command', $('#user-input').val());
         }
         else {                              // Message is a chat message
-            socket.emit('chat message', $('#user-input').val());
+            socket.emit('chat', $('#user-input').val());
         }
         $('#user-input').val('');                    // reset message value
         return false;
     });
     // \/ FROM SERVER \/
     // get client-side messages from server
-    socket.on('server message', function(msg) {
+    socket.on('client', function(msg) {
         $('#messages').append($('<li style="font-style:italic;color:purple;">').text(msg));
     });
     // get connect/disconnect messages
-    socket.on('connectAndDisconnect', function(msg) {
+    socket.on('server', function(msg) {
         $('#messages').append($('<li style="font-style:italic;color:red;">').text(msg));
     });
     // get chat messages
-    socket.on('chat message', function(msg) {
+    socket.on('chat', function(msg) {
         $('#messages').append($('<li>').text(msg));
     });
     // get command messages

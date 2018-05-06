@@ -3,18 +3,33 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path')
+// var fs = require('fs');
 
+// Variables
 var clients = [];
 var messages = [];
 var votes = [];
-var hint;
+var hint;	// current hint
+var turn;	// current turn in game
 
 // Routes
 app.use(express.static(path.join(__dirname, 'public/')));
 app.get('/', function(req, res) {
-  res.sendFile(path.join(__dirname, 'public', 'views', 'game.html'));
+  	res.sendFile(path.join(__dirname, 'public', 'views', 'game.html'));
 });
-
+app.get('/api/clients', function(req, res) {
+	res.status(200).json({clients: clients});
+});
+app.get('/api/messages', function(req, res) {
+	res.status(200).json(messages);
+});
+app.get('/api/messages/?type=:type', function(req, res) {
+	// types = client, server, chat, command
+	res.status(200).json(messages.filter(function(msg) {return msg['type'] == req.params.type}));
+})
+app.get('/api/votes', function(req, res) {
+	res.status(200).json(votes);
+});
 
 // Connection 
 // very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
@@ -41,10 +56,10 @@ io.on('connection', function(socket) {
 
 		// Display connection message
 		var message = nickname + ' connected';
-		io.emit('connectAndDisconnect', message);
+		io.emit('server', message);
 		messages.push({
 			message: message,
-			type: 'connectAndDisconnect'
+			type: 'server'
 		});
 	});
 
@@ -62,21 +77,21 @@ io.on('connection', function(socket) {
 
 		// Display disconnection message
 		var message = nickname + ' disconnected';
-		io.emit('connectAndDisconnect', message);
+		io.emit('server', message);
 		messages.push({
 			message: message,
-			type: 'connectAndDisconnect'
+			type: 'server'
 		});
 	});
 
-	// receive chat messages
-	socket.on('chat message', function(msg) {
+	// receive chats
+	socket.on('chat', function(msg) {
 		// refactor later -> add disallowing of messages that are all spaces
 		var message = nickname + ": " + msg;
-		io.emit('chat message', message);
+		io.emit('chat', message);
 		messages.push({
 			message: message,
-			type: 'chat message'
+			type: 'chat'
 		});
 	});
 
@@ -89,7 +104,7 @@ io.on('connection', function(socket) {
 			case 'vote':
 				// check # params
 				if (msg.length != 2) {
-					socket.emit('server message', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
+					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
 					return;
 				}
 
@@ -102,7 +117,7 @@ io.on('connection', function(socket) {
 						word: msg[1]
 					});
 				// } else {
-				// 	socket.emit('server message', `invalid vote: "${msg[1]}" not found in dictionary`);
+				// 	socket.emit('client', `invalid vote: "${msg[1]}" not found in dictionary`);
 				// 	return;
 				// }
 				break;
@@ -112,7 +127,7 @@ io.on('connection', function(socket) {
 				for (var i = 0; i < clients.length; i++) {
 					if (clients[i].id == socket.id) {
 						if (clients[i].role != "spymaster") {
-							socket.emit('server message', `invalid command: you are not the spymaster`);
+							socket.emit('client', `invalid command: you are not the spymaster`);
 							return;
 						}
 						break; // breaks out of for loop, not case statement
@@ -121,7 +136,7 @@ io.on('connection', function(socket) {
 
 				// check # params
 				if (msg.length != 2) {
-					socket.emit('server message', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
+					socket.emit('client', `invalid command: "${msg[0].substring(1)}" requires 1 argument`);
 					return;
 				}
 
@@ -130,14 +145,13 @@ io.on('connection', function(socket) {
 					hint = msg[1];
 					message += `has hinted the word: "${msg[1]}"`;
 				// } else {
-				// 	socket.emit('server message', `invalid hint: "${msg[1]}" not found in dictionary`);
+				// 	socket.emit('client', `invalid hint: "${msg[1]}" not found in dictionary`);
 				// 	return;
 				// }
 				// break;
 
-
 			default:
-				socket.emit('server message', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
+				socket.emit('client', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
 				return;
 		}
 		io.emit('command', message);
@@ -150,5 +164,5 @@ io.on('connection', function(socket) {
 
 // Runner
 http.listen(3000, "0.0.0.0", function() {
-  console.log('listening on *:3000');
+  	console.log('listening on *:3000');
 });
