@@ -1,7 +1,6 @@
-// while(!nick) {                              // require a nickname
-    // var nick = prompt('Enter a nickname:', 'Onipy'); 
-nick = "test-user";
-// }
+while(!nick) {                              // require a nickname
+    var nick = prompt('Enter a nickname:', 'Onipy');
+}
 
 $(function () {
     var socket = io();
