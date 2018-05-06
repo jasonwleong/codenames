@@ -176,7 +176,7 @@ io.on('connection', function(socket) {
 					default:
 						socket.emit('message', {
 							type: 'error',
-							text: `invalid command: "${msg[0]}"`; // sent only to client
+							text: `invalid command: "${msg[0]}"` // sent only to client
 						});
 						return;
 				}
