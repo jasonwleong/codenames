@@ -62,8 +62,8 @@ io.on('connection', function(socket) {
 			text: message
 		});
 		messages.push({
-			message: message,
 			type: 'message'
+			text: message,
 		});
 	});
 
@@ -86,8 +86,8 @@ io.on('connection', function(socket) {
 			text: message
 		});
 		messages.push({
-			message: message,
 			type: 'message'
+			text: message,
 		});
 	});
 
