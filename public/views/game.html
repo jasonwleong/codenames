@@ -1,18 +1,14 @@
-<!-- TODO @jleong: convert to pug for templating later 
-	https://html2pug.herokuapp.com/
-	https://github.com/pugjs/pug
-	https://gist.github.com/joepie91/c0069ab0e0da40cc7b54b8c2203befe1
-
--->
 <!DOCTYPE html>
 <html>
 <head>
 	<meta charset="UTF-8">
     <title>Codenames</title>
-	<link rel="stylesheet" type="text/css" href="main.css">
-	<script src="client-game.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/main.css">
 	<!-- dependencies for frontend -->
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+	<script type="text/javascript" src="libs/jquery-3.3.1.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<!-- client side code -->
+	<script type="text/javascript" src="js/game.js"></script>
 </head>
 <body>
 	<h1 id="title">Codenames</h1>
@@ -27,7 +23,8 @@
 		<h2>Players</h2>
 		<div id="players-list">
 			<ul id="players">
-			-	for (var p = 0; p < players.length; p++)
+				<!-- TODO jleong: use js -->
+			<!-- -	for (var p = 0; p < players.length; p++) -->
 				<li class="player">
 					<span class="name">temp player name</span>
 					<input class="ready-check" type="checkbox">
@@ -79,11 +76,13 @@
 		<!-- CHAT -->
 		<div id="chat">
 			<div id="chat-history">
-				<!-- TODO @jleong: insert messages with pug -->
+				<ul id="messages">
+					<!-- messages to be inserted -->
+				</ul>
 			</div>
 			<div id="chat-input">
 				<form id="user-input-form" name="user-input-form">
-					<input id="user-input" name="user-input" type="text">
+					<input id="user-input" name="user-input" type="text" autocomplete="off" required placeholder="Write a message...">
 					<!-- <input type="button" value="Send"> -->
 					<button id="send">Send</button>
 				</form>
@@ -95,7 +94,7 @@
 		<h2>Dictionary</h2>
 		<div id="search-wrapper">
 			<form id="search-form" name="search-form">
-				<input id="search-input" name="search-input" type="text" placeholder="Search words">
+				<input id="search-input" name="search-input" type="text" placeholder="Search words" required>
 			</form>
 		</div>
 		<div id="search-results">
