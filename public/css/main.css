@@ -4,7 +4,7 @@
 	height: 100px;
 }
 
-#timer {
+#time {
 	width: 20%;
 	border: 1px solid blue;
 }
@@ -12,13 +12,17 @@
 /* PAGE */
 html {
 	height: 100%;
+	background: azure;
 }
 
 body {
 	/*margin: 0px 8px 0px 0px;*/
-	font: 13px Helvetica, Arial;
+	font: 2vh Helvetica, Arial;
 	height: 100%;	/* locks app to single page */
 	margin: 0px;
+	max-width: 100%;
+    overflow: hidden;
+
 }
 
 .clearfix:after {
@@ -30,13 +34,16 @@ body {
 /* HEADINGS */
 #title {
 	color: darkgreen;
-	font-size: 300%; 
 	text-align: center;
+	font-size: 6vh;
 	margin: 0;
+	padding-top: 0.3em;
 }
 
 h2 {
 	text-align: center;
+	margin: 0;
+	padding: 1vh;
 }
 
 /* BUTTONS (input[button]) */ 
@@ -138,20 +145,33 @@ input.ready-check {
 	padding: 0; 
 }
 
-#messages li { 
-	/* change to percent */
+#messages li {	/* message */
 	padding: 5px 10px; 
 }
+
 #messages li:nth-child(odd) {
-	background: #eee; 
+	background: lightgrey; 
+}
+
+#messages li.client {	/* client only messages */
+	font-style: italic;
+	color: purple;
+}
+
+#messages li.error {	/* client only messages */
+	font-style: italic;
+	color: red;
 }
 
 #user-input {
-	width: 82%;
+	width: 75%;
+	padding: 1vh;
 }
 
 button#send {
-	padding: 1% 6%;
+	padding: 1.5vh;
+	width: 20%;
+	float: right;
 }
 
 /* DICTIONARY */
@@ -169,11 +189,21 @@ button#disconnect:hover {
 	background: red;
 }
 
-
-button#disconnect:active {
-	background: black;
+button#instructions {
+	width: 100%;
+	background: blue;
 }
 
+button#instructions:hover {
+	background: lightblue;
+	color: black;
+}
+
+button#disconnect:active,
+button#instructions:active {
+	background: black;
+	color: white;
+}
 
 /*form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }*/
 /*form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }*/

@@ -52,7 +52,7 @@ io.on('connection', function(socket) {
 
 		// Display previous messages
 		for (var i = 0; i < messages.length; i++) {
-			socket.emit(String(messages[i].type), messages[i].message);
+			socket.emit(String(messages[i].type), messages[i].text);
 		}
 
 		// Display connection message
@@ -181,10 +181,11 @@ io.on('connection', function(socket) {
 						return;
 				}
 			case 'chat':
-				Object.assing(response, {
+				Object.assign(response, {
 					type: 'chat',
 					text: `${nickname}: ${msg['text']}`
 				});
+				break;
 
 			default:
 				return;
