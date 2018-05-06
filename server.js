@@ -90,25 +90,102 @@ io.on('connection', function(socket) {
 		// msg = {text: "", type: vote|hint}
 		const response = {};
 		switch (msg['type']) {
+
 			case 'command':
 				var inputs = msg['text'].split(' ');
 				// check spymaster
 				switch (msg['cmdType']) {
+
 					case 'vote':
-				
+
+						// if user is spymaster, send error
+						for (var i = 0; i < clients.length; i++) {
+							if (clients[i].id == socket.id) {
+								if (clients[i].role == 'spymaster') {
+									socket.emit('message', {
+										type: 'error',
+										text: 'The Spymaster may not vote.'
+									});
+									return;
+								}
+								break; // id found, not spymaster, break out of for loop
+							}
+						}
+
+						// check if vote exists in game board
+						// if (vote in dictionary) {
+							// remove vote belonging to client if it exists, add new vote
+							votes = votes.filter(function(vote) {
+								return vote.id != socket.id;
+							});
+							votes.push({
+								id: socket.id,
+								nickname: nickname,
+								word: inputs[1]
+							});
+
+							// adjust message
+							Object.assign(response, {
+								type: 'vote',
+								text: `${nickname} has voted for "${inputs[1]}"`
+							});
+						// } else {
+						// 	socket.emit('message', {
+						// 		type: 'error',
+						// 		text: `invalid vote: "${inputs[1]}" does not exist on the board`
+						// 	});
+						// 	return;
+						// }
+						break;
+
+						
 					case 'hint':
+
+						// if user is not spymaster, send error
+						for (var i = 0; i < clients.length; i++) {
+							if (clients[i].id == socket.id) {
+								if (clients[i].role != 'spymaster') {
+									socket.emit('message', {
+										type: 'error',
+										text: 'Only the Spymaster is allowed to send a hint.'
+									});
+									return;
+								}
+								break; // id found, not spymaster, break out of for loop
+							}
+						}
+						// check if hint exists in dictionary of words
+						// if (hint in dictionary) {
+							hint = inputs[1];
+							Object.assign(response, {
+								type: 'hint',
+								text: `${nickname} has hinted the word "${hint}"`
+							});
+						// } else {
+						// 	socket.emit('message', `invalid hint: "${inputs[1]}" not found in dictionary`);
+						// 	return;
+						// }
+						break;
+
 					default:
-						socket.emit('client', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
+						socket.emit('message', {
+							type: 'error',
+							text: `invalid command: "${msg[0]}"`; // sent only to client
+						});
 						return;
 				}
 			case 'chat':
+				Object.assing(response, {
+					type: 'chat',
+					text: `${nickname}: ${msg['text']}`
+				});
 
 			default:
 				return;
 		}
 		// do this regardless
 		messages.push(msg);
-		socket.emit('message', response);
+		io.emit('message', response);
 	});
 
 	// TODO @pat: clean up stuff below
