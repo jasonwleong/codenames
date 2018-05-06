@@ -85,6 +85,30 @@ io.on('connection', function(socket) {
 		});
 	});
 
+	// TODO @pat: keep
+	socket.on('message', function(msg) {
+		// msg = {text: "", type: vote|hint}
+		switch (msg['type']) {
+			case 'command':
+				switch (msg['cmdType']) {
+					case 'vote':
+
+					case 'hint':
+					default:
+						socket.emit('client', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
+						return;
+				}
+			case 'chat':
+
+			default:
+				return;
+		}
+		// do this regardless
+		messages.push(msg);
+	});
+
+	// TODO @pat: clean up stuff below
+
 	// receive chats
 	socket.on('chat', function(msg) {
 		// refactor later -> add disallowing of messages that are all spaces
