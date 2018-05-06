@@ -57,10 +57,13 @@ io.on('connection', function(socket) {
 
 		// Display connection message
 		var message = nickname + ' connected';
-		io.emit('server', message);
+		io.emit('message', {
+			type: 'server',
+			text: message
+		});
 		messages.push({
 			message: message,
-			type: 'server'
+			type: 'message'
 		});
 	});
 
@@ -78,10 +81,13 @@ io.on('connection', function(socket) {
 
 		// Display disconnection message
 		var message = nickname + ' disconnected';
-		io.emit('server', message);
+		io.emit('message', {
+			type: 'server',
+			text: message
+		});
 		messages.push({
 			message: message,
-			type: 'server'
+			type: 'message'
 		});
 	});
 
