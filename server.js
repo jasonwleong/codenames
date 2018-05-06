@@ -88,11 +88,14 @@ io.on('connection', function(socket) {
 	// TODO @pat: keep
 	socket.on('message', function(msg) {
 		// msg = {text: "", type: vote|hint}
+		const response = {};
 		switch (msg['type']) {
 			case 'command':
+				var inputs = msg['text'].split(' ');
+				// check spymaster
 				switch (msg['cmdType']) {
 					case 'vote':
-
+				
 					case 'hint':
 					default:
 						socket.emit('client', `invalid command: "${msg[0].substring(1)}"`); // sent only to client
@@ -105,6 +108,7 @@ io.on('connection', function(socket) {
 		}
 		// do this regardless
 		messages.push(msg);
+		socket.emit('message', response);
 	});
 
 	// TODO @pat: clean up stuff below
