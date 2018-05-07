@@ -3,14 +3,20 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path')
-// var fs = require('fs');
+var fs = require('fs');
 
 // Variables
 var clients = [];
 var messages = [];
 var votes = [];
+var words = {};
 var hint;	// current hint
 var turn;	// current turn in game
+var phase;
+
+
+// array of all nouns
+var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\n');
 
 // Routes
 app.use(express.static(path.join(__dirname, 'public/')));
@@ -59,7 +65,7 @@ io.on('connection', function(socket) {
 		});
 		io.emit('newPlayer', newPlayer);
 		messages.push({
-			type: 'server',
+			type: 'server',	
 			text: message
 		});
 
@@ -93,7 +99,48 @@ io.on('connection', function(socket) {
 		});
 	});
 
-	// TODO @pat: keep
+	// receive: String 'type'
+	// return: Object {type}
+	socket.on('event', function(type) {
+		switch (type) {
+
+			// remember: when ending a game, set words = {}
+
+			case 'newGame':
+				// assign random unique words to words{} from allwords[]
+				var temparray = []
+				while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
+					var rand = Math.floor(Math.random() * allwords.length) + 1;
+					if (temparray.indexOf(rand) > -1) continue;
+					temparray[temparray.length] = rand;
+				}
+
+				for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
+					var team;
+					if (i < 8){
+						team = 1;
+					} else if (i < 17) {
+						team = 2;
+					} else if (i == 17) {
+						team = 3;
+					} else {
+						team = 0;
+					}
+					words[allwords[temparray[i]]] = {team: team, revealed: false};
+				}
+
+
+
+
+
+				break;
+			
+			default:
+				return;
+		}
+	});
+
+
 	socket.on('message', function(msg) {
 		// msg = {text: "", type: vote|hint}
 		const response = {};
@@ -107,17 +154,11 @@ io.on('connection', function(socket) {
 					case 'vote':
 
 						// if user is spymaster, send error
-						for (var i = 0; i < clients.length; i++) {
-							if (clients[i].id == socket.id) {
-								if (clients[i].role == 'spymaster') {
-									socket.emit('message', {
-										type: 'error',
-										text: 'The Spymaster may not vote.'
-									});
-									return;
-								}
-								break; // id found, not spymaster, break out of for loop
-							}
+						if (isSpymaster(socket)) {
+							socket.emit('message', {
+								type: 'error',
+								text: 'The Spymaster may not vote.'
+							});
 						}
 
 						// check if vote exists in game board
@@ -150,18 +191,13 @@ io.on('connection', function(socket) {
 					case 'hint':
 
 						// if user is not spymaster, send error
-						for (var i = 0; i < clients.length; i++) {
-							if (clients[i].id == socket.id) {
-								if (clients[i].role != 'spymaster') {
-									socket.emit('message', {
-										type: 'error',
-										text: 'Only the Spymaster is allowed to send a hint.'
-									});
-									return;
-								}
-								break; // id found, not spymaster, break out of for loop
-							}
+						if (!isSpymaster(socket)) {
+							socket.emit('message', {
+								type: 'error',
+								text: 'Only the Spymaster is allowed to send a hint.'
+							});
 						}
+
 						// check if hint exists in dictionary of words
 						// if (hint in dictionary) {
 							hint = inputs[1];
@@ -193,10 +229,21 @@ io.on('connection', function(socket) {
 				return;
 		}
 		// do this regardless
-		messages.push(msg);
+		messages.push(response);
 		io.emit('message', response);
 	});
 });
+
+function isSpymaster(socket) {
+	for (var i = 0; i < clients.length; i++) {
+		if (clients[i].id == socket.id) {
+			if (clients[i].role == 'spymaster') {
+				return true;
+			}
+			return false; // id found, not spymaster, break out of for loop
+		}
+	}
+}
 
 // Runner
 http.listen(3000, "0.0.0.0", function() {
