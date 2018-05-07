@@ -5,8 +5,9 @@
 }
 
 #time {
-	width: 20%;
-	border: 1px solid blue;
+	text-align: center;
+	margin: 0;
+	padding: 1vh;
 }
 
 /* PAGE */
@@ -101,8 +102,11 @@ button:active {
 }
 
 input.ready-check {
+	margin: 0;
+	padding: 0;
 	float: right;
 	margin-right: 10%;
+	margin-top: 0.2vh;
 }
 
 /* WORD BOARD (and buttons/inputs) */

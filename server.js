@@ -6,7 +6,7 @@ var path = require('path')
 var fs = require('fs');
 
 // Variables
-var clients = [];	// array of objects -> { id: socketid, nicknameL nickname, role: 'minion'|'spymaster', team: 1|2 }
+var clients = [];	// array of objects -> { id: socketid, nickname: nickname, role: 'minion'|'spymaster', team: 1|2 }
 var messages = [];	// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
 var votes = [];		// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
 var words = {};		// dictionary -> key = (String)word, value = { team:'A'|'B', revealed: (boolean)val }
@@ -14,7 +14,7 @@ var hint = {};		// current hint -> {word: 'blah', num: x}
 var turn;			// current turn in game: 1 | 2
 var phase;			// hinting | guessing
 var numTimers;
-
+var numChecks;
 
 // array of all nouns
 var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\n');
@@ -57,19 +57,21 @@ io.on('connection', function(socket) {
 		}
 		clients.push(newPlayer);	
 
-		// Display connection message
-		var message = nickname + ' has connected';
-		io.emit('message', {
-			type: 'system',
-			text: message
-		});
-		io.emit('newPlayer', newPlayer);
-		messages.push({
-			type: 'system',	
-			text: message
-		});
+		// Display previous messages
+		for (var i = 0; i < messages.length; i++) {
+			socket.emit('message', messages[i]);
+		}
 
-		emitOldData(socket);
+		// Display connection message
+		var msg = {type: 'system', text: nickname + ' has connected'}
+		io.emit('message', msg);
+		// for (var i = 0; i < clients.length; i++) {
+		// 	if (clients[i]['id'] != socket.id)
+		// 		socket.broadcast.to(clients[i]['id']).emit('newPlayer', newPlayer);
+		// }
+		socket.emit('id', socket.id);
+		io.emit('clients', clients);
+		messages.push(msg);
 	});
 
 	// receive disconnections
@@ -85,51 +87,24 @@ io.on('connection', function(socket) {
 		}
 
 		// Display disconnection message
-		var message = nickname + ' disconnected';
-		io.emit('message', {
-			type: 'system',
-			text: message
-		});
-		messages.push({
-			type: 'system',
-			text: message
-		});
-	});
+		var msg = {type: 'system', text: nickname + ' disconnected'}
+		io.emit('message', msg);
+		io.emit('clients', clients);
+		messages.push(msg);
 
-	socket.on('newGame', function(type) {
-
-		// assign random unique words to words{} from allwords[]
-		var temparray = []
-		while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
-			var rand = Math.floor(Math.random() * allwords.length) + 1;
-			if (temparray.indexOf(rand) > -1) continue;
-			temparray[temparray.length] = rand;
-		}
-
-		for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
-			var team;
-			switch (true) {
-				case (i < 9): team = 1; break;	// team 1 has 9 cards (team 1 goes first)
-				case (i < 17): team = 2; break; // team 2 has 8 cards (team 2 goes second)
-				case (i == 17): team = 3; break;// only 1 assassin card
-				default: team = 0;				// 7 white cards
-			}
-			words[allwords[temparray[i]]] = {team: team, revealed: false};
-		}
-
-		// other initial setup
-		turn = 1;
-		phase = 'hinting';
-
-		// send game state to players
-		io.emit('newGame', {
-			turn: turn,
-			phase: phase
-		});
+		// check if <4 players - if so force game quit (emit endGame?)
 
 	});
 
-	socket.on('nextPhaseReady' function() { // timer expired
+	socket.on('readyGame', function(clientReady) {
+		(clientReady['ready'] == true) ? numChecks++ : numChecks--;
+		console.log(numChecks);
+		if (numChecks == clients.length) {
+			createNewGame();
+		}
+	});
+
+	socket.on('nextPhaseReady', function() { // timer expired
 		numTimers++;
 		if (numTimers == clients.length) { // make sure everyone's timer has ended
 			switch(true) {
@@ -142,7 +117,6 @@ io.on('connection', function(socket) {
 					phase = 'hinting';
 					break;
 			}
-
 			numTimers = 0;
 		}
 	});
@@ -248,16 +222,35 @@ io.on('connection', function(socket) {
 	});
 });
 
-function emitOldData(socket) {
-	// Display previous messages
-	for (var i = 0; i < messages.length; i++) {
-		socket.emit('message', messages[i]);
+function createNewGame() {
+	// assign random unique words to words{} from allwords[]
+	var temparray = []
+	while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
+		var rand = Math.floor(Math.random() * allwords.length) + 1;
+		if (temparray.indexOf(rand) > -1) continue;
+		temparray[temparray.length] = rand;
 	}
 
-	// Display other players
-	for (var i = 0; i < clients.length; i++) {
-		socket.emit('newPlayer', clients[i]);
+	for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
+		var team;
+		switch (true) {
+			case (i < 9): team = 1; break;	// team 1 has 9 cards (team 1 goes first)
+			case (i < 17): team = 2; break; // team 2 has 8 cards (team 2 goes second)
+			case (i == 17): team = 3; break;// only 1 assassin card
+			default: team = 0;				// 7 white cards
+		}
+		words[allwords[temparray[i]]] = {team: team, revealed: false};
 	}
+
+	// other initial setup
+	turn = 1;
+	phase = 'hinting';
+
+	// send game state to players
+	io.emit('newGame', {
+		turn: turn,
+		phase: phase
+	});
 }
 
 function isSpymaster(socket) {

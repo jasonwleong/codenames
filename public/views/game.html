@@ -9,7 +9,7 @@
 	<script src="/socket.io/socket.io.js"></script>
 	<!-- client side code -->
 	<script type="text/javascript" src="js/game.js"></script>
-</head>
+</head>	
 <body>
 	<div id="header">
 		<h1 id="title">Codenames</h1>
@@ -18,11 +18,9 @@
 	<div class="left-content">
 		<div class="clearfix">
 			<button id="disconnect">Disconnect</button>
-			<button id="rules">Game Rules</button>
+			<button id="rules" onclick="showGameRules()">Game Rules</button>
 		</div>
-		<h2>Time</h2>
-		<div id="time">
-		</div>
+		<h2 id="time">Time</h2>
 		<h2>Points</h2>
 		<div id="points-list">
 				<ul id="points">
@@ -33,10 +31,10 @@
 		<h2>Players</h2>
 		<div id="players-list">
 			<form id="player-ready-form" name="player-ready-form">
-				<ul id="players">
-
-				</ul>
 			</form>
+			<ul id="players">	<!-- other players -->
+				
+			</ul>
 		</div>
 		<h2>Votes</h2>
 		<div id="votes-list">
