@@ -153,7 +153,7 @@ input.ready-check {
 	background: lightgrey; 
 }
 
-#messages li.client {	/* client only messages */
+#messages li.system {	/* system messages */
 	font-style: italic;
 	color: purple;
 }
@@ -163,13 +163,20 @@ input.ready-check {
 	color: red;
 }
 
+#user-input-form {
+	/*background: black;*/
+	width: 100%;
+}
+
 #user-input {
-	width: 75%;
-	padding: 1vh;
+	width: 77%;
+	padding-top: 1vh;
+	padding-bottom: 1vh;
 }
 
 button#send {
-	padding: 1.5vh;
+	padding-top: 1.3vh;
+	padding-bottom: 1.3vh;
 	width: 20%;
 	float: right;
 }
@@ -189,18 +196,18 @@ button#disconnect:hover {
 	background: red;
 }
 
-button#instructions {
+button#rules {
 	width: 100%;
 	background: blue;
 }
 
-button#instructions:hover {
+button#rules:hover {
 	background: lightblue;
 	color: black;
 }
 
 button#disconnect:active,
-button#instructions:active {
+button#rules:active {
 	background: black;
 	color: white;
 }

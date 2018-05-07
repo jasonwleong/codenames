@@ -45,7 +45,6 @@ io.on('connection', function(socket) {
 
 	// receive connections
 	socket.on('newUser', function(nick) {
-
 		// Get user's nickname and add him to clients array
 		nickname = nick;
 		console.log(`Connection: ${socket.id} \t as ${nickname}`);
@@ -60,19 +59,16 @@ io.on('connection', function(socket) {
 		// Display connection message
 		var message = nickname + ' has connected';
 		io.emit('message', {
-			type: 'server',
+			type: 'system',
 			text: message
 		});
 		io.emit('newPlayer', newPlayer);
 		messages.push({
-			type: 'server',	
+			type: 'system',	
 			text: message
 		});
 
-		// Display previous messages
-		for (var i = 0; i < messages.length; i++) {
-			socket.emit('message', messages[i]);
-		}
+		emitOldData(socket);
 	});
 
 	// receive disconnections
@@ -90,11 +86,11 @@ io.on('connection', function(socket) {
 		// Display disconnection message
 		var message = nickname + ' disconnected';
 		io.emit('message', {
-			type: 'server',
+			type: 'system',
 			text: message
 		});
 		messages.push({
-			type: 'server',
+			type: 'system',
 			text: message
 		});
 	});
@@ -128,10 +124,6 @@ io.on('connection', function(socket) {
 					}
 					words[allwords[temparray[i]]] = {team: team, revealed: false};
 				}
-
-
-
-
 
 				break;
 			
@@ -233,6 +225,18 @@ io.on('connection', function(socket) {
 		io.emit('message', response);
 	});
 });
+
+function emitOldData(socket) {
+	// Display previous messages
+	for (var i = 0; i < messages.length; i++) {
+		socket.emit('message', messages[i]);
+	}
+
+	// Display other players
+	for (var i = 0; i < clients.length; i++) {
+		socket.emit('newPlayer', clients[i]);
+	}
+}
 
 function isSpymaster(socket) {
 	for (var i = 0; i < clients.length; i++) {

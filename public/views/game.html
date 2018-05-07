@@ -18,21 +18,30 @@
 	<div class="left-content">
 		<div class="clearfix">
 			<button id="disconnect">Disconnect</button>
-			<button id="instructions">Instructions</button>
+			<button id="rules">Game Rules</button>
 		</div>
 		<h2>Time</h2>
 		<div id="time">
 		</div>
+		<h2>Points</h2>
+		<div id="points-list">
+				<ul id="points">
+					<li>Red: </li>
+					<li>Blue:</li>
+				</ul>
+		</div>
 		<h2>Players</h2>
 		<div id="players-list">
-			<ul id="players">
-				<!-- TODO jleong: use js -->
-			<!-- -	for (var p = 0; p < players.length; p++) -->
-				<li class="player">
-					<span class="name">temp player name</span>
-					<input class="ready-check" type="checkbox">
-				</li>
-			</ul>
+			<form id="player-ready-form" name="player-ready-form">
+				<ul id="players">
+
+				</ul>
+			</form>
+		</div>
+		<h2>Votes</h2>
+		<div id="votes-list">
+				<ul id="votes">
+				</ul>
 		</div>
 	</div>
 	<!-- MAIN CONTENT -->
@@ -84,13 +93,11 @@
 				</ul>
 			</div>
 			<div id="chat-input">
-				<div id="temp">
-					<form id="user-input-form" name="user-input-form">
-						<input id="user-input" name="user-input" type="text" autocomplete="off" required placeholder="Write a message...">
-						<!-- <input type="button" value="Send"> -->
-						<button id="send">Send</button>
-					</form>
-				</div>
+				<form id="user-input-form" name="user-input-form">
+					<input id="user-input" name="user-input" type="text" autocomplete="off" required placeholder="Write a message...">
+					<!-- <input type="button" value="Send"> -->
+					<button id="send">Send</button>
+				</form>
 			</div>
 		</div>
 	</div>
