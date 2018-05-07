@@ -37,7 +37,7 @@ $(function () {
                         }
                         text = inputs[1];
                     case 'hint':
-                        if (inputs.length != 3 || (!isNaN(inputs[2]))) {
+                        if (inputs.length != 3 || (isNaN(inputs[2]))) {
                             chatMessage('Usage: "/vote [word] [number]". Type "/help" for more info.', 'error');
                             return clearChatAndEndForm();
                         }
