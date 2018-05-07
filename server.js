@@ -13,8 +13,9 @@ var words = {};		// dictionary -> key = (String)word, value = { team:'A'|'B', re
 var hint = {};		// current hint -> {word: 'blah', num: x}
 var turn;			// current turn in game: 1 | 2
 var phase;			// hinting | guessing
-var numTimers;
-var numChecks;
+var numTimers;		// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
+var numChecks;		// same with timers, but with the ready checks before a game starts instead
+var timer;			// global variable for time set by timer
 
 // array of all nouns
 var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\n');
@@ -72,6 +73,7 @@ io.on('connection', function(socket) {
 		socket.emit('id', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
+		startNewTimer(10);
 	});
 
 	// receive disconnections
@@ -93,7 +95,9 @@ io.on('connection', function(socket) {
 		messages.push(msg);
 
 		// check if <4 players - if so force game quit (emit endGame?)
-
+		if (clients.length < 4) {
+			endGame();
+		}
 	});
 
 	socket.on('readyGame', function(clientReady) {
@@ -253,6 +257,21 @@ function createNewGame() {
 	});
 }
 
+function endGame() {
+	messages = [];
+	votes = [];
+	words = {};
+	hint = {};
+	var turn;
+	var phase;
+	var numTimers;
+	var numChecks;
+	var timer;
+	if (clients.length < 4) {
+		io.emit('message', {type: 'system', text: 'There are less than four players connected, ending game'})
+	}
+}
+
 function isSpymaster(socket) {
 	for (var i = 0; i < clients.length; i++) {
 		if (clients[i].id == socket.id) {
@@ -271,6 +290,21 @@ function getVoteMajority() {
 		typeof temp[word] === 'undefined' ? temp[word] = 1 : temp[word]++;
 	}
 	return Object.keys(temp).reduce(function(a, b) { return temp[a] > temp[b] ? a : b });
+}
+
+function startNewTimer(time) {          // time in seconds
+    clearInterval(timer);
+    timer = setInterval(function() {
+        if (time == 0) {
+        	clearInterval(timer);
+        	// timer is out, do something (like call a function or some shit)
+        } else {
+	        time--;
+	        timer = time;
+			console.log(`timer value: ${timer}`);
+    	}
+    }, 1000);
+    return timer;
 }
 
 // Runner
