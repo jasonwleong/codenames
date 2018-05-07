@@ -6,13 +6,14 @@ var path = require('path')
 var fs = require('fs');
 
 // Variables
-var clients = [];
-var messages = [];
-var votes = [];
-var words = {};
-var hint;	// current hint
-var turn;	// current turn in game
-var phase;
+var clients = [];	// array of objects -> { id: socketid, nicknameL nickname, role: 'minion'|'spymaster', team: 1|2 }
+var messages = [];	// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
+var votes = [];		// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
+var words = {};		// dictionary -> key = (String)word, value = { team:'A'|'B', revealed: (boolean)val }
+var hint = {};		// current hint -> {word: 'blah', num: x}
+var turn;			// current turn in game: 1 | 2
+var phase;			// hinting | guessing
+var numTimers;
 
 
 // array of all nouns
@@ -95,40 +96,54 @@ io.on('connection', function(socket) {
 		});
 	});
 
-	// receive: String 'type'
-	// return: Object {type}
-	socket.on('event', function(type) {
-		switch (type) {
+	socket.on('newGame', function(type) {
 
-			// remember: when ending a game, set words = {}
+		// assign random unique words to words{} from allwords[]
+		var temparray = []
+		while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
+			var rand = Math.floor(Math.random() * allwords.length) + 1;
+			if (temparray.indexOf(rand) > -1) continue;
+			temparray[temparray.length] = rand;
+		}
 
-			case 'newGame':
-				// assign random unique words to words{} from allwords[]
-				var temparray = []
-				while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
-					var rand = Math.floor(Math.random() * allwords.length) + 1;
-					if (temparray.indexOf(rand) > -1) continue;
-					temparray[temparray.length] = rand;
-				}
+		for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
+			var team;
+			switch (true) {
+				case (i < 9): team = 1; break;	// team 1 has 9 cards (team 1 goes first)
+				case (i < 17): team = 2; break; // team 2 has 8 cards (team 2 goes second)
+				case (i == 17): team = 3; break;// only 1 assassin card
+				default: team = 0;				// 7 white cards
+			}
+			words[allwords[temparray[i]]] = {team: team, revealed: false};
+		}
 
-				for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
-					var team;
-					if (i < 8){
-						team = 1;
-					} else if (i < 17) {
-						team = 2;
-					} else if (i == 17) {
-						team = 3;
-					} else {
-						team = 0;
-					}
-					words[allwords[temparray[i]]] = {team: team, revealed: false};
-				}
+		// other initial setup
+		turn = 1;
+		phase = 'hinting';
 
-				break;
-			
-			default:
-				return;
+		// send game state to players
+		io.emit('newGame', {
+			turn: turn,
+			phase: phase
+		});
+
+	});
+
+	socket.on('nextPhaseReady' function() { // timer expired
+		numTimers++;
+		if (numTimers == clients.length) { // make sure everyone's timer has ended
+			switch(true) {
+				case (phase == 'hinting'):
+					io.emit('')
+					phase = 'guessing';
+					break;
+
+				case (phase == 'guessing'):
+					phase = 'hinting';
+					break;
+			}
+
+			numTimers = 0;
 		}
 	});
 
@@ -152,9 +167,9 @@ io.on('connection', function(socket) {
 								text: 'The Spymaster may not vote.'
 							});
 						}
-
+						console.log(inputs[1]);
 						// check if vote exists in game board
-						// if (vote in dictionary) {
+						if (inputs[1] in words) {
 							// remove vote belonging to client if it exists, add new vote
 							votes = votes.filter(function(vote) {
 								return vote.id != socket.id;
@@ -167,16 +182,16 @@ io.on('connection', function(socket) {
 
 							// adjust message
 							Object.assign(response, {
-								type: 'server',
+								type: 'system',
 								text: `${nickname} has voted for "${inputs[1]}"`
 							});
-						// } else {
-						// 	socket.emit('message', {
-						// 		type: 'error',
-						// 		text: `invalid vote: "${inputs[1]}" does not exist on the board`
-						// 	});
-						// 	return;
-						// }
+						} else {
+							socket.emit('message', {
+								type: 'error',
+								text: `invalid vote: "${inputs[1]}" does not exist on the board`
+							});
+							return;
+						}
 						break;
 
 						
@@ -190,17 +205,24 @@ io.on('connection', function(socket) {
 							});
 						}
 
-						// check if hint exists in dictionary of words
-						// if (hint in dictionary) {
-							hint = inputs[1];
+						//check if hint exists in dictionary of words
+						if (inputs[1] in dictionary) {
+							hint = {word: inputs[1], num: inputs[2]};
 							Object.assign(response, {
-								type: 'server',
-								text: `${nickname} has hinted the word "${hint}"`
+								type: 'system',
+								text: `${nickname} has hinted the word "${hint['word']}"`
 							});
-						// } else {
-						// 	socket.emit('message', `invalid hint: "${inputs[1]}" not found in dictionary`);
-						// 	return;
-						// }
+							io.emit('gameState', {
+								type: 'hint',
+								info: hint['word']
+							})
+						} else {
+							socket.emit('message', {
+								type: 'error',
+								text: `invalid hint: "${inputs[1]}" not found in dictionary`
+							});
+							return;
+						}
 						break;
 
 					default:
@@ -247,6 +269,15 @@ function isSpymaster(socket) {
 			return false; // id found, not spymaster, break out of for loop
 		}
 	}
+}
+
+function getVoteMajority() {
+	var temp = {}
+	for (var i = 0; i < votes.length; i++) {
+		var word = votes[1]['word'];
+		typeof temp[word] === 'undefined' ? temp[word] = 1 : temp[word]++;
+	}
+	return Object.keys(temp).reduce(function(a, b) { return temp[a] > temp[b] ? a : b });
 }
 
 // Runner
