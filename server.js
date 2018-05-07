@@ -212,7 +212,7 @@ io.on('connection', function(socket) {
 										});
 									}
 								}
-								hint = {word: inputs[1], num: inputs[2]};
+								hint = {word: inputs[1], num: Number(inputs[2])};
 								Object.assign(response, {
 									type: 'system',
 									text: `${nickname} has hinted the word "${hint['word']}"`
