@@ -9,16 +9,25 @@ var fs = require('fs');
 var clients = [];	// array of objects -> { id: socketid, nickname: nickname, role: 'minion'|'spymaster', team: 1|2 }
 var messages = [];	// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
 var votes = [];		// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
-var words = {};		// dictionary -> key = (String)word, value = { team:'A'|'B', revealed: (boolean)val }
+var words = {};		// dictionary -> key = (String)word, value = { team: 1|2, revealed: (boolean)val }
 var hint = {};		// current hint -> {word: 'blah', num: x}
-var turn;			// current turn in game: 1 | 2
+var turn;			// current turn in game: 1|2 -> team 1 is red, team 2 is blue
 var phase;			// hinting | guessing
 var numTimers;		// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
 var numChecks;		// same with timers, but with the ready checks before a game starts instead
 var timer;			// global variable for time set by timer
 
+
+// 'gamestate' emits to clients contain:
+// 	{
+// 		type: hint        | vote                           | end
+// 		info: hinted word | {word:(String),correct:(bool)} | int of team who won
+// 	}
+
+
 // array of all nouns
 var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\n');
+var dictionary = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt')).toString().split('\n');
 
 // Routes
 app.use(express.static(path.join(__dirname, 'public/')));
@@ -73,7 +82,6 @@ io.on('connection', function(socket) {
 		socket.emit('id', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
-		startNewTimer(10);
 	});
 
 	// receive disconnections
@@ -100,6 +108,7 @@ io.on('connection', function(socket) {
 		}
 	});
 
+	// ask jason about this later
 	socket.on('readyGame', function(clientReady) {
 		(clientReady['ready'] == true) ? numChecks++ : numChecks--;
 		console.log(numChecks);
@@ -126,6 +135,7 @@ io.on('connection', function(socket) {
 	});
 
 
+
 	socket.on('message', function(msg) {
 		// msg = {text: "", type: vote|hint}
 		const response = {};
@@ -148,6 +158,13 @@ io.on('connection', function(socket) {
 						console.log(inputs[1]);
 						// check if vote exists in game board
 						if (inputs[1] in words) {
+							if (words[inputs[1]].revealed) {
+								socket.emit('message', {
+									type: 'error',
+									text: `invalid vote: "${inputs[1]}" has already been revealed`
+								});
+							}
+
 							// remove vote belonging to client if it exists, add new vote
 							votes = votes.filter(function(vote) {
 								return vote.id != socket.id;
@@ -184,16 +201,32 @@ io.on('connection', function(socket) {
 						}
 
 						//check if hint exists in dictionary of words
-						if (inputs[1] in dictionary) {
-							hint = {word: inputs[1], num: inputs[2]};
-							Object.assign(response, {
-								type: 'system',
-								text: `${nickname} has hinted the word "${hint['word']}"`
-							});
-							io.emit('gameState', {
-								type: 'hint',
-								info: hint['word']
-							})
+						if (inputs[1] in dictionary) { // check if word is actually a word
+							if (!(inputs[1] in words)) { // check if word is on the board
+								var keys = Object.keys(words);
+								for (var i = 0; i < keys; i++) { // check if word is within another word on the board
+									if (inputs[1] in keys[i]) {
+										socket.emit('message', {
+											type: 'error',
+											text: `invalid hint: your hint "${inputs[1]}" may not be part of a word on the board`
+										});
+									}
+								}
+								hint = {word: inputs[1], num: inputs[2]};
+								Object.assign(response, {
+									type: 'system',
+									text: `${nickname} has hinted the word "${hint['word']}"`
+								});
+								io.emit('gameState', {
+									type: 'hint',
+									info: inputs[1]
+								})
+							} else {
+								socket.emit('message', {
+									type: 'error',
+									text: `invalid hint: you cannot hint "${inputs[1]}" if exists on the board`
+								});
+							}
 						} else {
 							socket.emit('message', {
 								type: 'error',
@@ -241,7 +274,7 @@ function createNewGame() {
 			case (i < 9): team = 1; break;	// team 1 has 9 cards (team 1 goes first)
 			case (i < 17): team = 2; break; // team 2 has 8 cards (team 2 goes second)
 			case (i == 17): team = 3; break;// only 1 assassin card
-			default: team = 0;				// 7 white cards
+			default: team = 0;				// 7 neutral cards
 		}
 		words[allwords[temparray[i]]] = {team: team, revealed: false};
 	}
@@ -289,7 +322,67 @@ function getVoteMajority() {
 		var word = votes[1]['word'];
 		typeof temp[word] === 'undefined' ? temp[word] = 1 : temp[word]++;
 	}
-	return Object.keys(temp).reduce(function(a, b) { return temp[a] > temp[b] ? a : b });
+	validateVote(Object.keys(temp).reduce(function(a, b) { return temp[a] > temp[b] ? a : b }));
+}
+
+function validateVote(vote) { // gets word and checks if it is right or wrong
+
+	// if assassin, lose
+	// if right, check if the team has won
+	// if wrong, send back object -> {word: (String), correct: (bool)}
+
+	if (words[vote]['team'] == 3) { // vote was the assassin, 
+		if (turn == 1) {
+			io.emit('gameState', {
+				type: 'end',
+				info: 2
+			});
+		} else {
+			io.emit('gameState', {
+				type: 'end',
+				info: 1
+			});
+		}
+
+	}
+
+	if (words[vote]['team'] == turn) { // team's vote is correct
+
+		if (checkWinCondition()) { // checked if team won
+			io.emit('gameState', {
+				type: 'end',
+				info: turn
+			});
+
+		} else { // team guessed correctly but has not won yet
+			io.emit('gameState', {
+				type: 'vote',
+				info: {
+					word: vote,
+					correct: true
+				}
+			});
+			hint['num']--;
+			words[vote]['revealed'] = true;
+		}
+	}
+}
+
+function checkWinCondition() { // checks if team with current turn has won
+	var numRevealed = 0;
+	var keys = Object.keys(words);
+	for (var i = 0; i < keys.length; i++) {
+		if (words[keys[i]]['team'] == turn && words[keys[i]]['revealed']) {
+			numRevealed++;
+		}
+	}
+	if (turn == 1 && numRevealed == 9) {
+		return true;
+	} else if (turn == 2 && numRevealed == 8) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 function startNewTimer(time) {          // time in seconds
