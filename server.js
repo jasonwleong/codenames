@@ -5,6 +5,10 @@ var io = require('socket.io')(http);
 var path = require('path');
 var fs = require('fs');
 
+// text files containing words
+var allWordsText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt'), 'utf8').toString()
+var dictionaryText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt'), 'utf8').toString()
+
 // Variables
 var clients = [];	// array of objects -> { id: socketid, nickname: nickname, role: 'minion'|'spymaster', team: 1|2 }
 var messages = [];	// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
@@ -17,17 +21,14 @@ var numTimers;		// when timers go out on the front end, message is emitted to se
 var numChecks;		// same with timers, but with the ready checks before a game starts instead
 var timer;			// global variable for time set by timer
 
+var allWords = allWordsText.includes('\r') ? allWordsText.split('\r\n') : allWordsText.split('\n');
+var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : dictionaryText.split('\n');
 
 // 'gamestate' emits to clients contain:
 // 	{
 // 		type: hint	    | vote                           | end
 // 		info: hinted word | {word:(String),correct:(bool)} | int of team who won
 // 	}
-
-
-// array of all nouns
-var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt'), 'utf8').toString().split('\n');
-var dictionary = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt'), 'utf8').toString().split('\n');
 
 // Routes
 app.use(express.static(path.join(__dirname, 'public/')));
@@ -48,7 +49,7 @@ app.get('/api/votes', function(req, res) {
 	res.status(200).json(votes);
 });
 
-// Connection 
+// Connection
 // very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
 io.on('connection', function(socket) {
 
@@ -65,7 +66,7 @@ io.on('connection', function(socket) {
 			role: "minion",	// to be updated
 			team: "red"	// to be updated
 		}
-		clients.push(newPlayer);	
+		clients.push(newPlayer);
 
 		// Display previous messages
 		for (var i = 0; i < messages.length; i++) {
@@ -135,8 +136,6 @@ io.on('connection', function(socket) {
 		}
 	});
 
-
-
 	socket.on('message', function(msg) {
 		// msg = {text: "", type: vote|hint}
 		const response = {};
@@ -190,7 +189,6 @@ io.on('connection', function(socket) {
 						}
 						break;
 
-						
 					case 'hint':
 
 						// if user is not spymaster, send error
@@ -261,11 +259,11 @@ io.on('connection', function(socket) {
 });
 
 function createNewGame(socket) {
-	// assign random unique words to words{} from allwords[]
-	var temparray = shuffle([...Array(allwords.length).keys()]).splice(0,25); // converts temparray to list (length 25) of random numbers up to allwords.length
+	// assign random unique words to words{} from allWords[]
+	var temparray = shuffle([...Array(allWords.length).keys()]).splice(0,25); // converts temparray to list (length 25) of random numbers up to allWords.length
 
 
-	for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
+	for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allWords to be stored in words
 		var team;
 		switch (true) {
 			case (i < 9): team = 1; break;	// team 1 has 9 cards (team 1 goes first)
@@ -273,7 +271,7 @@ function createNewGame(socket) {
 			case (i == 17): team = 3; break;// only 1 assassin card
 			default: team = 0;				// 7 neutral cards
 		}
-		words[allwords[temparray[i]]] = {team: team, revealed: false};
+		words[allWords[temparray[i]]] = {team: team, revealed: false};
 	}
 	console.log(words);
 
@@ -337,7 +335,7 @@ function assignSpymasters() {
         }
         else {
             clientids2.push(clients[i].id);
-        }    
+        }
     }
     var spymaster1 = clientids1[Math.floor(Math.random() * clientids1.length)];
     var spymaster2 = clientids2[Math.floor(Math.random() * clientids2.length)];
@@ -372,7 +370,7 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 	// if right, check if the team has won
 	// if wrong, send back object -> {word: (String), correct: (bool)}
 
-	if (words[vote]['team'] == 3) { // vote was the assassin, 
+	if (words[vote]['team'] == 3) { // vote was the assassin,
 		if (turn == 1) {
 			io.emit('gameState', {
 				type: 'end',
@@ -458,7 +456,6 @@ function shuffle(array) {
   	}
   	return array;
 }
-
 
 // Runner
 http.listen(3000, "0.0.0.0", function() {
