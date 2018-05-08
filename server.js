@@ -55,6 +55,7 @@ app.post('/api/clients', function(req, res) {
 	client = req.body;
 	(client.ready === "true") ? numChecks++ : numChecks--;
 	console.log("numChecks: " + numChecks);
+	console.log(clients);
 	if ((numChecks == clients.length) & (numChecks > 4)){
 		console.log('createNewGame()');
 		createNewGame(getSocketByID(client.id));
@@ -304,7 +305,8 @@ function createNewGame(socket) {
 	for (var i = 0; i < keys.length; i++) { 	// populate board[] with words and neutral team associations
 		board.push({
 			word: keys[i],
-			team: 0
+			team: 0,
+			revealed: false
 		});
 	}
 	board = shuffle(board);						// shuffle board
@@ -326,6 +328,7 @@ function createNewGame(socket) {
 			socket.broadcast.to(clients[i]['id']).emit('key', board);
 		}
 	}
+	console.log(board);
 	console.log('game initialization finished')
 }
 
