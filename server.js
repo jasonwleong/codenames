@@ -26,7 +26,7 @@ var timer;			// global variable for time set by timer
 
 
 // array of all nouns
-var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\n');
+var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\r\n');
 var dictionary = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt')).toString().split('\n');
 
 // Routes
@@ -82,6 +82,7 @@ io.on('connection', function(socket) {
 		socket.emit('id', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
+		createNewGame(socket);
 	});
 
 	// receive disconnections
@@ -284,7 +285,7 @@ function createNewGame(socket) {
 	turn = 1;
 	phase = 'hinting';
 
-	assignSpymasters();
+	// assignSpymasters(); // implementation for getting ready checks not done, so this will be put on hold or it will throw an error
 
 	// make an unshuffled board[] -> {word: (String), team: 0|1|2|3}
 	// if spymaster, team is revealed for each word
@@ -293,15 +294,15 @@ function createNewGame(socket) {
 	var keys = Object.keys(words);
 	var board = [];
 	for (var i = 0; i < keys.length; i++) {
-		if (isSM) { // spymaster
-			board[i] = {
-				word: keys[i],
-				team: 0
-			};
-		} else { // not spymaster
+		if (isSM) { 	// spymaster, give words + key
 			board[i] = {
 				word: keys[i],
 				team: words[keys[i]]['team']
+			};
+		} else { 		// not spymaster, give words + neutrals
+			board[i] = {
+				word: keys[i],
+				team: 0
 			};
 		}
 	}
@@ -352,14 +353,14 @@ function assignSpymasters() {
     var clientids2 = [];
     for (var i = 0; i < clients.length; i++) {
         if (clients[i].team == 1) {
-            clientsid1.append(clients[i].id);
+            clientids1.push(clients[i].id);
         }
         else {
-        	clientsid2.append(clients[i].id);
+            clientids2.push(clients[i].id);
         }    
     }
-    var spymaster1 = clientsid1[Math.floor(Math.random() * clientsid1.length)];
-    var spymaster2 = clientsid2[Math.floor(Math.random() * clientsid2.length)];
+    var spymaster1 = clientids1[Math.floor(Math.random() * clientids1.length)];
+    var spymaster2 = clientids2[Math.floor(Math.random() * clientids2.length)];
 
     clients[spymaster1].role = 'spymaster';
     clients[spymaster2].role = 'spymaster';
