@@ -106,7 +106,6 @@ io.on('connection', function(socket) {
 		if (clients.length < 4) {
 			endGame();
 		}
-		createNewGame();
 	});
 
 	// ask jason about this later
@@ -114,7 +113,7 @@ io.on('connection', function(socket) {
 		(clientReady['ready'] == true) ? numChecks++ : numChecks--;
 		console.log(numChecks);
 		if (numChecks == clients.length) {
-			createNewGame();
+			createNewGame(socket);
 		}
 	});
 
@@ -260,7 +259,7 @@ io.on('connection', function(socket) {
 	});
 });
 
-function createNewGame() {
+function createNewGame(socket) {
 	// assign random unique words to words{} from allwords[]
 	var temparray = []
 	while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
@@ -285,9 +284,30 @@ function createNewGame() {
 	turn = 1;
 	phase = 'hinting';
 
-	// make shuffled array of keys from words[]
+	assignSpymasters();
+
+	// make an unshuffled board[] -> {word: (String), team: 0|1|2|3}
+	// if spymaster, team is revealed for each word
+	// if not spymaster, all words are neutral
+	var isSM = isSpymaster(socket);
+	var keys = Object.keys(words);
+	var board = [];
+	for (var i = 0; i < keys.length; i++) {
+		if (isSM) { // spymaster
+			board[i] = {
+				word: keys[i],
+				team: 0
+			};
+		} else { // not spymaster
+			board[i] = {
+				word: keys[i],
+				team: words[keys[i]]['team']
+			};
+		}
+	}
+
+	// shuffle the board array of keys from words[]
 	// shuffle words via Fisher-Yates (aka Knuth) Shuffle
-	var board = Object.keys(words);
 	var currentIndex = board.length, temporaryValue, randomIndex;
 
 	// While there remain elements to shuffle...
@@ -304,9 +324,8 @@ function createNewGame() {
 	}
 	console.log(board);
 
-	// send game state to players
-	// normal board for plebs, key board for spymasters
-	io.emit('newGame', {
+	// send gamestate to players
+	socket.emit('newGame', {
 		turn: turn,
 		phase: phase,
 		board: board
@@ -328,8 +347,22 @@ function endGame() {
 	}
 }
 
-function assignSpymaster(team) {
+function assignSpymasters() {
+    var clientids1 = [];
+    var clientids2 = [];
+    for (var i = 0; i < clients.length; i++) {
+        if (clients[i].team == 1) {
+            clientsid1.append(clients[i].id);
+        }
+        else {
+        	clientsid2.append(clients[i].id);
+        }    
+    }
+    var spymaster1 = clientsid1[Math.floor(Math.random() * clientsid1.length)];
+    var spymaster2 = clientsid2[Math.floor(Math.random() * clientsid2.length)];
 
+    clients[spymaster1].role = 'spymaster';
+    clients[spymaster2].role = 'spymaster';
 }
 
 function isSpymaster(socket) {
