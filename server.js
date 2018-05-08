@@ -10,23 +10,24 @@ var allWordsText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words
 var dictionaryText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt'), 'utf8').toString()
 
 // Variables
-var clients = [];	// array of objects -> { id: socketid, nickname: nickname, role: 'minion'|'spymaster', team: 1|2 }
-var messages = [];	// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
-var votes = [];		// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
-var words = {};		// dictionary -> key = (String)word, value = { team: 1|2, revealed: (boolean)val }
-var hint = {};		// current hint -> {word: 'blah', num: x}
-var turn;			// current turn in game: 1|2 -> team 1 is red, team 2 is blue
-var phase;			// hinting | guessing
-var numTimers;		// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
-var numChecks;		// same with timers, but with the ready checks before a game starts instead
-var timer;			// global variable for time set by timer
+var clients = [];		// array of objects -> { id: socketid, nickname: nickname, role: 'minion'|'spymaster', team: 1|2 }
+var clientsDict = {};	// dictionary -> key = socket.id, value = client object
+var messages = [];		// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
+var votes = [];			// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
+var words = {};			// dictionary -> key = (String)word, value = { team: 1|2, revealed: (boolean)val }
+var hint = {};			// current hint -> {word: 'blah', num: x}
+var turn;				// current turn in game: 1|2 -> team 1 is red, team 2 is blue
+var phase;				// hinting | guessing
+var numTimers;			// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
+var numChecks;			// same with timers, but with the ready checks before a game starts instead
+var timer;				// global variable for time set by timer
 
 var allWords = allWordsText.includes('\r') ? allWordsText.split('\r\n') : allWordsText.split('\n');
 var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : dictionaryText.split('\n');
 
 // 'gamestate' emits to clients contain:
 // 	{
-// 		type: hint	    | vote                           | end
+// 		type: hint	      | vote                           | end
 // 		info: hinted word | {word:(String),correct:(bool)} | int of team who won
 // 	}
 
@@ -67,7 +68,7 @@ io.on('connection', function(socket) {
 			team: (clients.length % 2 == 0) ? 1 : 2 // to be updated
 		}
 		clients.push(newPlayer);
-		console.log(newPlayer);
+		clientsDict[socket.id] = newPlayer;
 
 		// Display previous messages
 		for (var i = 0; i < messages.length; i++) {
@@ -84,7 +85,6 @@ io.on('connection', function(socket) {
 		socket.emit('id', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
-		createNewGame(socket);
 	});
 
 	// receive disconnections
@@ -97,6 +97,7 @@ io.on('connection', function(socket) {
 			if (clients[i].id == socket.id) {
 				clients.splice(i, 1);
 			}
+			break;
 		}
 
 		// Display disconnection message
@@ -150,7 +151,7 @@ io.on('connection', function(socket) {
 					case 'vote':
 
 						// if user is spymaster, send error
-						if (isSpymaster(socket)) {
+						if (isSpymaster(socket.id)) {
 							socket.emit('message', {
 								type: 'error',
 								text: 'The Spymaster may not vote.'
@@ -193,7 +194,7 @@ io.on('connection', function(socket) {
 					case 'hint':
 
 						// if user is not spymaster, send error
-						if (!isSpymaster(socket)) {
+						if (!isSpymaster(socket.id)) {
 							socket.emit('message', {
 								type: 'error',
 								text: 'Only the Spymaster is allowed to send a hint.'
@@ -260,6 +261,7 @@ io.on('connection', function(socket) {
 });
 
 function createNewGame(socket) {
+	console.log('starting new game...');
 	// assign random unique words to words{} from allWords[]
 	var temparray = shuffle([...Array(allWords.length).keys()]).splice(0,25); // converts temparray to list (length 25) of random numbers up to allWords.length
 
@@ -281,33 +283,37 @@ function createNewGame(socket) {
 
 	// assignSpymasters(); // implementation for getting ready checks not done, so this will be put on hold or it will throw an error
 
-	// make an unshuffled board[] -> {word: (String), team: 0|1|2|3}
 	// if spymaster, team is revealed for each word
 	// if not spymaster, all words are neutral
-	var isSM = isSpymaster(socket);
-	var keys = Object.keys(words);
-	var board = [];
-	for (var i = 0; i < keys.length; i++) {
-		if (isSM) { 	// spymaster, give words + key
-			board[i] = {
-				word: keys[i],
-				team: words[keys[i]]['team']
-			};
-		} else { 		// not spymaster, give words + neutrals
-			board[i] = {
-				word: keys[i],
-				team: 0
-			};
+	console.log('initializing board...');
+	var keys = Object.keys(words);				// array of the words
+	var board = [];								// board to be processed twice (for minions, then spymasters)
+	for (var i = 0; i < keys.length; i++) { 	// populate board[] with words and neutral team associations
+		board.push({
+			word: keys[i],
+			team: 0
+		});
+	}
+	board = shuffle(board);						// shuffle board
+	for (var i = 0; i < clients.length; i++) {	// send neutral board to minions
+		socket.broadcast.to(clients[i]['id']).emit('newGame', {
+			turn: turn,
+			phase: phase,
+			board: board,
+			team: clients[i]['team'],
+			role: clients[i]['role']
+		});
+	}
+	for (var i = 0; i < board.length; i++) {	// assign answers to board[]
+		Object.assign(board[i], {team: words[board[i]['word']]['team']})
+	}
+
+	for (var i = 0; i < clients.length; i++) {	// send board with answers to spymasters
+		if (isSpymaster(clients[i]['id'])) {
+			socket.broadcast.to(clients[i]['id']).emit('key', board);
 		}
 	}
-	board = shuffle(board);
-
-	// send gamestate to players
-	io.emit('newGame', {
-		turn: turn,
-		phase: phase,
-		board: board
-	});
+	console.log('game initialization finished')
 }
 
 function endGame() {
@@ -340,9 +346,9 @@ function assignSpymasters() {
     team2[Math.floor(Math.random() * team2.length)]['role'] = 'spymaster';
 }
 
-function isSpymaster(socket) {
+function isSpymaster(socketid) {
 	for (var i = 0; i < clients.length; i++) {
-		if (clients[i].id == socket.id) {
+		if (clients[i].id == socketid) {
 			if (clients[i].role == 'spymaster') {
 				return true;
 			}
@@ -451,6 +457,10 @@ function shuffle(array) {
 		array[randomIndex] = temporaryValue;
   	}
   	return array;
+}
+
+function getSocketByID(socketid) {
+	return io.sockets.connected[socketid];
 }
 
 // Runner
