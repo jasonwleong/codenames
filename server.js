@@ -106,6 +106,7 @@ io.on('connection', function(socket) {
 		if (clients.length < 4) {
 			endGame();
 		}
+		createNewGame();
 	});
 
 	// ask jason about this later
@@ -278,15 +279,37 @@ function createNewGame() {
 		}
 		words[allwords[temparray[i]]] = {team: team, revealed: false};
 	}
+	console.log(words);
 
 	// other initial setup
 	turn = 1;
 	phase = 'hinting';
 
+	// make shuffled array of keys from words[]
+	// shuffle words via Fisher-Yates (aka Knuth) Shuffle
+	var board = Object.keys(words);
+	var currentIndex = board.length, temporaryValue, randomIndex;
+
+	// While there remain elements to shuffle...
+	while (0 !== currentIndex) {
+
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temporaryValue = board[currentIndex];
+		board[currentIndex] = board[randomIndex];
+		board[randomIndex] = temporaryValue;
+	}
+	console.log(board);
+
 	// send game state to players
+	// normal board for plebs, key board for spymasters
 	io.emit('newGame', {
 		turn: turn,
-		phase: phase
+		phase: phase,
+		board: board
 	});
 }
 
@@ -303,6 +326,10 @@ function endGame() {
 	if (clients.length < 4) {
 		io.emit('message', {type: 'system', text: 'There are less than four players connected, ending game'})
 	}
+}
+
+function assignSpymaster(team) {
+
 }
 
 function isSpymaster(socket) {
