@@ -262,8 +262,7 @@ io.on('connection', function(socket) {
 
 function createNewGame(socket) {
 	// assign random unique words to words{} from allwords[]
-	var temparray = [...Array(25).keys()]; // converts temparray to list (length 25) of random numbers up to allwords.length
-	temparray = shuffle(temparray);
+	var temparray = shuffle([...Array(allwords.length).keys()]).splice(0,25); // converts temparray to list (length 25) of random numbers up to allwords.length
 
 
 	for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
