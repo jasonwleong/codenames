@@ -15,6 +15,32 @@ while (!nick) {
     nick = prompt("Please enter a nickname below: \n" + getGameRules(), 'Onipy');      // temp
 }
 
+var tempBoard = [ { word: 'ninja', team: 0 },
+  { word: 'australia', team: 1 },
+  { word: 'square', team: 0 },
+  { word: 'princess', team: 0 },
+  { word: 'point', team: 1 },
+  { word: 'bomb', team: 2 },
+  { word: 'round', team: 0 },
+  { word: 'undertaker', team: 0 },
+  { word: 'state', team: 0 },
+  { word: 'jet', team: 2 },
+  { word: 'litter', team: 1 },
+  { word: 'trunk', team: 0 },
+  { word: 'fall', team: 2 },
+  { word: 'note', team: 2 },
+  { word: 'cover', team: 1 },
+  { word: 'angel', team: 1 },
+  { word: 'missile', team: 1 },
+  { word: 'glove', team: 1 },
+  { word: 'pool', team: 2 },
+  { word: 'table', team: 1 },
+  { word: 'lab', team: 1 },
+  { word: 'cycle', team: 2 },
+  { word: 'bell', team: 2 },
+  { word: 'check', team: 3 },
+  { word: 'sock', team: 2 } ]
+
 // CLIENT GAME LOGIC (and interactions with server)
 $(function () {
     var socket = io();
@@ -47,12 +73,14 @@ $(function () {
                         return clearChatAndEndForm();
                     }
                     text = inputs[1];
+                    break;
                 case 'hint':
-                    if (inputs.length != 3 || (!isNaN(inputs[2]))) {
-                        chatMessage('Usage: "/vote [word] [number]". Type "/help" for more info.', 'error');
+                    if (inputs.length != 3 || (isNaN(inputs[2]))) {
+                        chatMessage('Usage: "/hint [word] [number]". Type "/help" for more info.', 'error');
                         return clearChatAndEndForm();
                     }
                     text = inputs[1] + ' ' + inputs[2];
+                    break;
             }
             Object.assign(msg, {text: text, cmdType: cmdType});
         } else {  // chat - send user input as is
@@ -107,11 +135,25 @@ $(function () {
 // DISPLAY METHODS
 function clearPlayers() {
     $('#players').html('');                 // remove current players
-    $('#player-read-form').html('');        // remove self
+    $('#player-ready-form').html('');       // remove self
+    createBoard(tempBoard);                 // FIXME: REMOVE TO USE IN FLOW PROPERLY
 }
 
 function chatMessage(msgText, type) {
     $('#messages').append($(`<li class="${type}">`).text(msgText));
+}
+
+function createBoard(board) {
+    // intended to be called only once, when entire board data is sent over
+    var word;
+    var wordEl;
+    for (var i = 0; i < board.length; i++) {
+        word = board[i];                                                    // word data from board from server
+        wordEl = $(`.word-${i}`);                                           // grab the word button on board
+        wordEl.val(word['word']);                                                   // edit word's value (text)
+        wordEl.attr('id', `word-${word['word']}`);                          // update word's id
+        updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color
+    }
 }
 
 function showPlayer(player) {
@@ -121,8 +163,8 @@ function showPlayer(player) {
                             </li>`);
 }
 
-function showBoard(board) {
-    return;
+function showScore() {
+    // calculate by counting values on board
 }
 
 // GAME METHODS - requires usage of GAME_STATE variables
@@ -137,6 +179,16 @@ function sendReady(checkbox) {
     });
     console.log('sendReady complete');
     // socket.emit('readyGame', checkbox.checked)
+}
+
+function updateBoard(word) {
+    // word: {word: string word, team: team own, revealed: if word was touched}
+    $(`#word-${word['word']}`).attr("color", `team-${word['team']}-${word['revealed']}`);
+}
+
+function updateBoardImmediate(element, team, revealed) {
+    // updates word on board with a given jquery element
+    element.attr("color", `team-${team}-${revealed}`);
 }
 
 function startNewTimer(time) {          // time in seconds
