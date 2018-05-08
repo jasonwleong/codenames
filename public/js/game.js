@@ -1,17 +1,27 @@
-// while(!nick) {                              // require a nickname
-    // var nick = prompt('Enter a nickname:', 'Onipy');
-var nick = "hi";
-// }
-// clean up? rename or make error messages red?
-var systemMessages = ['system', 'server'];
-
+var nick;
 var GAME_STATE; // {messages: [], votes: [], words: [], solution: [], players: [], turn: 0}
+
+// nick = prompt("Please enter a nickname below: \n\n" + getGameRules(), 'Onipy');     // require a nickname
+while (!nick) {
+    // FIXME @jleong: check for names that exist - async false should solve problem
+    // $.get('api/clients/names', function(data, status) {
+    //     console.log(nick);
+    //     console.log(data);
+    //     console.log(data.includes(nick));
+    //     if (data.includes(nick)) {
+    //         nick = prompt(`${nick} is already used! Please enter a new name:`);
+    //     }
+    // });
+    nick = prompt("Please enter a nickname below: \n" + getGameRules(), 'Onipy');      // temp
+}
 
 // CLIENT GAME LOGIC (and interactions with server)
 $(function () {
     var socket = io();
     GAME_STATE = newGameData();
     socket.emit('newUser', nick);
+
+    // Player sends a chat message/command
     $('#user-input-form').submit(function(e) {
         e.preventDefault();
         const input = $('#user-input').val();
@@ -53,32 +63,23 @@ $(function () {
         return clearChatAndEndForm();
     });
 
-    socket.on('id', function(id) {
+    socket.on('newUser', function(id) {
         GAME_STATE['id'] = id;
-        console.log(id);
+        console.log('my id: ' + id);
     });
 
     // Handling server emission/responses
-    socket.on('clients', function(clients) {
-        // check if game is running
-        // const tempNumPlayers = GAME_STATE['players'].length
-        // if (GAME_STATE['players'][player['id']] === undefined) {    // player isn't noted on client
-        //     GAME_STATE['players'][player['id']] = player;
-        // }
-        // if (tempNumPlayers !== GAME_STATE['players'].length) {
-        //     showPlayer(player);
-        // }
+    socket.on('clients', function(clients) {    // event: clients - number of clients has changed
         GAME_STATE['players'] = clients;
-        $('#players').html('');                 // remove current players
-        $('#player-read-form').html('');        // remove self
+        clearPlayers();
         for (var i = 0; i < GAME_STATE['players'].length; i++) {
             var player = GAME_STATE['players'][i];
             if (player['id'] == GAME_STATE['id']) {
                 // show myself
-                $('#player-ready-form').append(`<p class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
+                $('#player-ready-form').append(`<p id="${player['id']}" class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
                                                     <span class="name">${player['nickname']}</span>
                                                     <span class="role">${player['role']}</span>
-                                                    <input class="ready-check" type="checkbox">
+                                                    <input id="ready-check" onclick="sendReady(this)" type="checkbox">
                                                 </p>`);
             } else { // show other players
                 showPlayer(GAME_STATE['players'][i]);
@@ -86,26 +87,42 @@ $(function () {
         }
     });
 
-    socket.on('message', function(msg) {
+    socket.on('message', function(msg) {        // event: message - server has a new system message or client chat
         chatMessage(msg['text'], msg['type']);
     });
 
-    socket.on('newGame', function() {
+    socket.on('newGame', function() {           // event: newGame - server response for all clients are ready -> starting a new game
+        // remove ready form checkbox
+        // check if spymaster? or just catch server's 'key' emit
+        // clean data (start new game)
         newGame();
+    });
+
+    socket.on('key', function() {              // event: key - server sending solution key to spymaster clients
+        return;
     });
 });
 
 
 // DISPLAY METHODS
+function clearPlayers() {
+    $('#players').html('');                 // remove current players
+    $('#player-read-form').html('');        // remove self
+}
+
 function chatMessage(msgText, type) {
     $('#messages').append($(`<li class="${type}">`).text(msgText));
 }
 
 function showPlayer(player) {
-     $('#players').append(`<li class="player ${player['team'] == 1 ? 'red': 'blue'}">
+     $('#players').append(`<li id="${player['id']}" class="player ${player['team'] == 1 ? 'red': 'blue'}">
                                 <span class="name">${player['nickname']}</span>
                                 <span class="role">${player['role']}</span>
                             </li>`);
+}
+
+function showBoard(board) {
+    return;
 }
 
 // GAME METHODS - requires usage of GAME_STATE variables
@@ -113,8 +130,13 @@ function newGame() {
     GAME_STATE = newGameData();
 }
 
-function updateBoard() {
-    var board = $('word-board');
+function sendReady(checkbox) {
+    console.log({id: GAME_STATE['id'], ready: checkbox.checked});
+    $.post('api/clients', {id: GAME_STATE['id'], ready: checkbox.checked}, function(data, status, res) {
+        console.log(data);
+    });
+    console.log('sendReady complete');
+    // socket.emit('readyGame', checkbox.checked)
 }
 
 function startNewTimer(time) {          // time in seconds
@@ -149,6 +171,21 @@ function clearChatAndEndForm() {
     return false;                       // check if this is needed
 }
 
+function getGameRules() {
+    //return getHelpMsgs().join(' ');
+    return "How-To-Play:\n" +
+            "Codenames is a guessing board game that is designed to be played with 4-8 players. Initially, players split into two different teams, either red or blue, and "  +
+            "each team designates a spymaster. In front of everyone is a 5x5 grid board with a random noun placed on each of the tiles. The spymasters are then each given the " +
+            "same 5x5 grid 'solution' card that has differently colored tiles which directly correspond to the words on the board: red (9 tiles), blue (8 tiles), beige (7 tiles), " +
+            "and black (1 tile), which represent the red agents, blue agents, bystanders, and assassins. The goal of the game is for the spymasters to get their team to guess all " +
+            "words that have their team’s respective colors on it. Every turn, the spymaster can give a one-word hint along with a number n. The teammates will then discuss decide " +
+            "on which words to pick, up to n + 1 words.\n\n" +
+            "Additional Notes:\n" +
+            "The beige tiles are duds and choosing it will immediately end your teams turn. Choosing the black tile will instantly lose your team the game." +
+            "The hint can be any one word as long as it is not one of the words on the board. The number n represents the number of words on the board the " +
+            "hint is related to and also limits your team to picking n + 1 words. The red team will always go first, which means that they need to guess an additional tile.\n"
+}
+
 function getHelpMsgs() {
     // this may or may not actually show in 2 lines in chat
     return ["/vote [word] : Players(excluding the Spymaster) may use /vote to vote for the word that they want to guess\n",
@@ -168,8 +205,4 @@ function newGameData() {
         phase: null,
         id: null,
         turn: 1}        // red: 1, blue: 2
-}
-
-function showGameRules() {
-    alert(getHelpMsgs().join(' '));
 }

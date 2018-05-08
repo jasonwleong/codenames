@@ -4,6 +4,9 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path');
 var fs = require('fs');
+var bodyParser = require('body-parser');
+
+
 
 // text files containing words
 var allWordsText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt'), 'utf8').toString()
@@ -18,9 +21,9 @@ var words = {};			// dictionary -> key = (String)word, value = { team: 1|2, reve
 var hint = {};			// current hint -> {word: 'blah', num: x}
 var turn;				// current turn in game: 1|2 -> team 1 is red, team 2 is blue
 var phase;				// hinting | guessing
-var numTimers;			// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
-var numChecks;			// same with timers, but with the ready checks before a game starts instead
 var timer;				// global variable for time set by timer
+var numTimers = 0;		// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
+var numChecks = 0;		// same with timers, but with the ready checks before a game starts instead
 
 var allWords = allWordsText.includes('\r') ? allWordsText.split('\r\n') : allWordsText.split('\n');
 var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : dictionaryText.split('\n');
@@ -31,26 +34,45 @@ var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : 
 // 		info: hinted word | {word:(String),correct:(bool)} | int of team who won
 // 	}
 
-// Routes
+
+// ROUTES (SETUP)
 app.use(express.static(path.join(__dirname, 'public/')));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
+
 app.get('/', function(req, res) {
   	res.sendFile(path.join(__dirname, 'public', 'views', 'game.html'));
 });
+
+// API 											TODO jleong: move to api.js?
 app.get('/api/clients', function(req, res) {
-	res.status(200).json({clients: clients});
+	res.send({clients: clients});
+});
+app.get('/api/clients/names', function(req, res) {
+	res.send([clients.map(c => c['nickname'])]);
+});
+app.post('/api/clients', function(req, res) {
+	client = req.body;
+	(client.ready === "true") ? numChecks++ : numChecks--;
+	console.log("numChecks: " + numChecks);
+	if ((numChecks == clients.length) & (numChecks > 4)){
+		console.log('createNewGame()');
+		createNewGame(getSocketByID(client.id));
+	}
+	res.send('server ack client post sendReady()');
 });
 app.get('/api/messages', function(req, res) {
-	res.status(200).json(messages);
+	res.send(messages);
 });
 app.get('/api/messages/?type=:type', function(req, res) {
 	// types = client, server, chat, command
-	res.status(200).json(messages.filter(function(msg) {return msg['type'] == req.params.type}));
+	res.send(messages.filter(function(msg) {return msg['type'] == req.params.type}));
 })
 app.get('/api/votes', function(req, res) {
-	res.status(200).json(votes);
+	res.send(votes);
 });
 
-// Connection
+// CONNECTION
 // very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
 io.on('connection', function(socket) {
 
@@ -82,7 +104,7 @@ io.on('connection', function(socket) {
 		// 	if (clients[i]['id'] != socket.id)
 		// 		socket.broadcast.to(clients[i]['id']).emit('newPlayer', newPlayer);
 		// }
-		socket.emit('id', socket.id);
+		socket.emit('newUser', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
 	});
@@ -110,15 +132,6 @@ io.on('connection', function(socket) {
 		// if (clients.length < 4) {
 		// 	endGame();
 		// }
-	});
-
-	// ask jason about this later
-	socket.on('readyGame', function(clientReady) {
-		(clientReady['ready'] == true) ? numChecks++ : numChecks--;
-		console.log(numChecks);
-		if (numChecks == clients.length) {
-			createNewGame(socket);
-		}
 	});
 
 	socket.on('nextPhaseReady', function() { // timer expired
@@ -340,7 +353,7 @@ function assignSpymasters() {
         }
         else {
             team2.push(clients[i]);
-        }    
+        }
     }
     team1[Math.floor(Math.random() * team1.length)]['role'] = 'spymaster';
     team2[Math.floor(Math.random() * team2.length)]['role'] = 'spymaster';
@@ -463,7 +476,7 @@ function getSocketByID(socketid) {
 	return io.sockets.connected[socketid];
 }
 
-// Runner
+// RUNNER
 http.listen(3000, "0.0.0.0", function() {
   	console.log('listening on *:3000');
 });
