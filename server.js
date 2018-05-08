@@ -26,8 +26,8 @@ var timer;			// global variable for time set by timer
 
 
 // array of all nouns
-var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt')).toString().split('\r\n');
-var dictionary = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt')).toString().split('\n');
+var allwords = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt'), 'utf8').toString().split('\n');
+var dictionary = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt'), 'utf8').toString().split('\n');
 
 // Routes
 app.use(express.static(path.join(__dirname, 'public/')));
