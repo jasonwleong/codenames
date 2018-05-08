@@ -17,7 +17,7 @@ var clients = [];		// array of objects -> { id: socketid, nickname: nickname, ro
 var clientsDict = {};	// dictionary -> key = socket.id, value = client object
 var messages = [];		// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
 var votes = [];			// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
-var words = {};			// dictionary -> key = (String)word, value = { team: 1|2, revealed: (boolean)val }
+var words = {};			// dictionary -> key = (String)word, value = { team: 1|2, revealed: 0|1 }
 var hint = {};			// current hint -> {word: 'blah', num: x}
 var turn;				// current turn in game: 1|2 -> team 1 is red, team 2 is blue
 var phase;				// hinting | guessing
@@ -87,7 +87,7 @@ io.on('connection', function(socket) {
 		var newPlayer = {
 			id: socket.id,
 			nickname: nickname,
-			role: "minion",	// to be updated
+			role: "piece of shit fuck ass",	// to be updated
 			team: (clients.length % 2 == 0) ? 1 : 2 // to be updated
 		}
 		clients.push(newPlayer);
@@ -174,7 +174,7 @@ io.on('connection', function(socket) {
 						console.log(inputs[1]);
 						// check if vote exists in game board
 						if (inputs[1] in words) {
-							if (words[inputs[1]].revealed) {
+							if (words[inputs[1]].revealed == 1) {
 								socket.emit('message', {
 									type: 'error',
 									text: `invalid vote: "${inputs[1]}" has already been revealed`
@@ -242,6 +242,7 @@ io.on('connection', function(socket) {
 									text: `invalid hint: you cannot hint "${inputs[1]}" if exists on the board`
 								});
 							}
+							return;
 						} else {
 							socket.emit('message', {
 								type: 'error',
@@ -288,7 +289,7 @@ function createNewGame(socket) {
 			case (i == 17): team = 3; break;// only 1 assassin card
 			default: team = 0;				// 7 neutral cards
 		}
-		words[allWords[temparray[i]]] = {team: team, revealed: false};
+		words[allWords[temparray[i]]] = {team: team, revealed: 0};
 	}
 
 	// other initial setup
@@ -306,7 +307,7 @@ function createNewGame(socket) {
 		board.push({
 			word: keys[i],
 			team: 0,
-			revealed: false
+			revealed: 0
 		});
 	}
 	board = shuffle(board);						// shuffle board
@@ -420,7 +421,7 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 				}
 			});
 			hint['num']--;
-			words[vote]['revealed'] = true;
+			words[vote]['revealed'] = 1;
 		}
 	}
 }
