@@ -64,9 +64,10 @@ io.on('connection', function(socket) {
 			id: socket.id,
 			nickname: nickname,
 			role: "minion",	// to be updated
-			team: "red"	// to be updated
+			team: (clients.length % 2 == 0) ? 1 : 2 // to be updated
 		}
 		clients.push(newPlayer);
+		console.log(newPlayer);
 
 		// Display previous messages
 		for (var i = 0; i < messages.length; i++) {
@@ -273,7 +274,6 @@ function createNewGame(socket) {
 		}
 		words[allWords[temparray[i]]] = {team: team, revealed: false};
 	}
-	console.log(words);
 
 	// other initial setup
 	turn = 1;
@@ -301,7 +301,6 @@ function createNewGame(socket) {
 		}
 	}
 	board = shuffle(board);
-	console.log(board);
 
 	// send gamestate to players
 	io.emit('newGame', {
@@ -327,21 +326,18 @@ function endGame() {
 }
 
 function assignSpymasters() {
-    var clientids1 = [];
-    var clientids2 = [];
+    var team1 = [];
+    var team2 = [];
     for (var i = 0; i < clients.length; i++) {
         if (clients[i].team == 1) {
-            clientids1.push(clients[i].id);
+            team1.push(clients[i]);
         }
         else {
-            clientids2.push(clients[i].id);
-        }
+            team2.push(clients[i]);
+        }    
     }
-    var spymaster1 = clientids1[Math.floor(Math.random() * clientids1.length)];
-    var spymaster2 = clientids2[Math.floor(Math.random() * clientids2.length)];
-
-    clients[spymaster1].role = 'spymaster';
-    clients[spymaster2].role = 'spymaster';
+    team1[Math.floor(Math.random() * team1.length)]['role'] = 'spymaster';
+    team2[Math.floor(Math.random() * team2.length)]['role'] = 'spymaster';
 }
 
 function isSpymaster(socket) {
