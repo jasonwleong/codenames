@@ -1,8 +1,8 @@
-var express = require('express')
+var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
-var path = require('path')
+var path = require('path');
 var fs = require('fs');
 
 // Variables
@@ -20,7 +20,7 @@ var timer;			// global variable for time set by timer
 
 // 'gamestate' emits to clients contain:
 // 	{
-// 		type: hint        | vote                           | end
+// 		type: hint	    | vote                           | end
 // 		info: hinted word | {word:(String),correct:(bool)} | int of team who won
 // 	}
 
@@ -104,9 +104,9 @@ io.on('connection', function(socket) {
 		messages.push(msg);
 
 		// check if <4 players - if so force game quit (emit endGame?)
-		if (clients.length < 4) {
-			endGame();
-		}
+		// if (clients.length < 4) {
+		// 	endGame();
+		// }
 	});
 
 	// ask jason about this later
@@ -262,12 +262,9 @@ io.on('connection', function(socket) {
 
 function createNewGame(socket) {
 	// assign random unique words to words{} from allwords[]
-	var temparray = []
-	while (temparray.length < 25) { // converts temparray to list (length 25) of random numbers up to allwords.length
-		var rand = Math.floor(Math.random() * allwords.length) + 1;
-		if (temparray.indexOf(rand) > -1) continue;
-		temparray[temparray.length] = rand;
-	}
+	var temparray = [...Array(25).keys()]; // converts temparray to list (length 25) of random numbers up to allwords.length
+	temparray = shuffle(temparray);
+
 
 	for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allwords to be stored in words
 		var team;
@@ -306,27 +303,11 @@ function createNewGame(socket) {
 			};
 		}
 	}
-
-	// shuffle the board array of keys from words[]
-	// shuffle words via Fisher-Yates (aka Knuth) Shuffle
-	var currentIndex = board.length, temporaryValue, randomIndex;
-
-	// While there remain elements to shuffle...
-	while (0 !== currentIndex) {
-
-		// Pick a remaining element...
-		randomIndex = Math.floor(Math.random() * currentIndex);
-		currentIndex -= 1;
-
-		// And swap it with the current element.
-		temporaryValue = board[currentIndex];
-		board[currentIndex] = board[randomIndex];
-		board[randomIndex] = temporaryValue;
-	}
+	board = shuffle(board);
 	console.log(board);
 
 	// send gamestate to players
-	socket.emit('newGame', {
+	io.emit('newGame', {
 		turn: turn,
 		phase: phase,
 		board: board
@@ -460,6 +441,25 @@ function startNewTimer(time) {          // time in seconds
     }, 1000);
     return timer;
 }
+
+function shuffle(array) {
+	var currentIndex = array.length, temporaryValue, randomIndex;
+
+	// While there remain elements to shuffle...
+	while (0 !== currentIndex) {
+
+		// Pick a remaining element...
+		randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex -= 1;
+
+		// And swap it with the current element.
+		temporaryValue = array[currentIndex];
+		array[currentIndex] = array[randomIndex];
+		array[randomIndex] = temporaryValue;
+  	}
+  	return array;
+}
+
 
 // Runner
 http.listen(3000, "0.0.0.0", function() {
