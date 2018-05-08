@@ -1,6 +1,6 @@
 // while(!nick) {                              // require a nickname
     // var nick = prompt('Enter a nickname:', 'Onipy');
-    var nick = "hi";
+var nick = "hi";
 // }
 // clean up? rename or make error messages red?
 var systemMessages = ['system', 'server'];
@@ -21,36 +21,36 @@ $(function () {
         if (type == "command") {
             const inputs = input.slice(1, input.length).split(' ');
             const cmdType = inputs[0];
-            if (cmdType == 'help') {
-                const helpMsgs = getHelpMsgs();
-                for (var i = 0; i < helpMsgs.length; i++) {
-                    chatMessage(helpMsgs[i], 'system');
-                }
-                return clearChatAndEndForm();
+            switch (cmdType) {
+                case 'help':
+                    const helpMsgs = getHelpMsgs();
+                    for (var i = 0; i < helpMsgs.length; i++) {
+                        chatMessage(helpMsgs[i], 'system');
+                    }
+                    return clearChatAndEndForm();
+                case 'turn':
+                    chatMessage(`It is currently ${GAME_STATE['turn'] == 1 ? 'red': 'blue'} team's turn.`, 'system');
+                    return clearChatAndEndForm();
+                case 'vote':
+                    if (inputs.length != 2) {
+                        chatMessage('Usage: "/vote [word]". Type "/help" for more info.', 'error');
+                        return clearChatAndEndForm();
+                    }
+                    text = inputs[1];
+                case 'hint':
+                    if (inputs.length != 3 || (!isNaN(inputs[2]))) {
+                        chatMessage('Usage: "/vote [word] [number]". Type "/help" for more info.', 'error');
+                        return clearChatAndEndForm();
+                    }
+                    text = inputs[1] + ' ' + inputs[2];
             }
-            else {
-                switch (cmdType) {
-                    case 'vote':
-                        if (inputs.length != 2) {
-                            chatMessage('Usage: "/vote [word]". Type "/help" for more info.', 'error');
-                            return clearChatAndEndForm();
-                        }
-                        text = inputs[1];
-                    case 'hint':
-                        if (inputs.length != 3 || (isNaN(inputs[2]))) {
-                            chatMessage('Usage: "/vote [word] [number]". Type "/help" for more info.', 'error');
-                            return clearChatAndEndForm();
-                        }
-                        text = inputs[1] + ' ' + inputs[2];
-                }
-                Object.assign(msg, {text: text, cmdType: cmdType});
-            }
+            Object.assign(msg, {text: text, cmdType: cmdType});
         } else {  // chat - send user input as is
             Object.assign(msg, {text: input});
         }
 
-        socket.emit('message', msg); 
-        return clearChatAndEndForm()
+        socket.emit('message', msg);
+        return clearChatAndEndForm();
     });
 
     socket.on('id', function(id) {
@@ -69,17 +69,19 @@ $(function () {
         //     showPlayer(player);
         // }
         GAME_STATE['players'] = clients;
-        $('#players').html('');                 // remove current list of players
+        $('#players').html('');                 // remove current players
+        $('#player-read-form').html('');        // remove self
         for (var i = 0; i < GAME_STATE['players'].length; i++) {
             var player = GAME_STATE['players'][i];
             if (player['id'] == GAME_STATE['id']) {
                 // show myself
-                $('#player-ready-form').append(`<span class="name">${player['nickname']}</span> 
-                                            <span class="role">${player['role']}</span>
-                                            <input class="ready-check" type="checkbox">`);
-            } else {
-                // show other players
-                showPlayer(player[i]);
+                $('#player-ready-form').append(`<p class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
+                                                    <span class="name">${player['nickname']}</span>
+                                                    <span class="role">${player['role']}</span>
+                                                    <input class="ready-check" type="checkbox">
+                                                </p>`);
+            } else { // show other players
+                showPlayer(GAME_STATE['players'][i]);
             }
         }
     });
@@ -100,8 +102,8 @@ function chatMessage(msgText, type) {
 }
 
 function showPlayer(player) {
-     $('#players').append(`<li class="player ${player['team']}">
-                                <span class="name">${player['nickname']}</span> 
+     $('#players').append(`<li class="player ${player['team'] == 1 ? 'red': 'blue'}">
+                                <span class="name">${player['nickname']}</span>
                                 <span class="role">${player['role']}</span>
                             </li>`);
 }
@@ -138,7 +140,7 @@ function stopTimerAndWait(time) {
 
 function voteWord(socket, word) {
     // use on click
-    socket.emit('message', {type: 'command', cmdType: 'vote', text: word}); 
+    socket.emit('message', {type: 'command', cmdType: 'vote', text: word});
 }
 
 // HELPER METHODS
@@ -165,7 +167,7 @@ function newGameData() {
         socket: null,
         phase: null,
         id: null,
-        turn: 1}
+        turn: 1}        // red: 1, blue: 2
 }
 
 function showGameRules() {

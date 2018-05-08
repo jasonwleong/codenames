@@ -47,7 +47,7 @@ h2 {
 	padding: 1vh;
 }
 
-/* BUTTONS (input[button]) */ 
+/* BUTTONS (input[button]) */
 input[type=button],
 button {
 	background-color: #4CAF50;
@@ -76,7 +76,7 @@ button:active {
 }
 
 .left-content,
-.main-content, 
+.main-content,
 .right-content {
 	float: left;
 	height: 90%;
@@ -99,6 +99,7 @@ button:active {
 /* PLAYERS */
 #players {
 	border: 1px solid pink;
+	list-style-type: none;
 }
 
 input.ready-check {
@@ -143,18 +144,18 @@ input.ready-check {
 	height: 10%;
 }
 
-#messages { 
-	list-style-type: none; 
-	margin: 0; 
-	padding: 0; 
+#messages {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
 }
 
 #messages li {	/* message */
-	padding: 5px 10px; 
+	padding: 5px 10px;
 }
 
 #messages li:nth-child(odd) {
-	background: lightgrey; 
+	background: lightgrey;
 }
 
 #messages li.system {	/* system messages */
@@ -214,6 +215,14 @@ button#disconnect:active,
 button#rules:active {
 	background: black;
 	color: white;
+}
+
+.red {
+	background-color: red;
+}
+
+.blue {
+	background-color: lightblue;
 }
 
 /*form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }*/
