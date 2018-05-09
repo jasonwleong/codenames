@@ -505,7 +505,8 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 				info: {
 					word: vote,
 					winner: turn,
-					turn: turn
+					turn: turn,
+					wordTeam: words[vote]['team']
 				}
 			});
 			io.emit('message', {
