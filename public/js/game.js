@@ -123,7 +123,7 @@ $(function () {
     });
 
     socket.on('gameState', function(state) {
-        updateBoardImmediate($(`#word-${state['info']['word']}`, state['info']['wordTeam'], 1));
+        updateBoard({word: state['info']['word'], team: state['info']['wordTeam'], revealed: 1});
         GAME_STATE['scores'][state['info']['wordTeam']]++;
         GAME_STATE['turn'] = state['info']['turn'];
         if (state['type'] == 'end') {
