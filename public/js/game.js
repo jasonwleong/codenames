@@ -1,7 +1,10 @@
 var nick;
 var GAME_STATE; // {messages: [], votes: [], words: [], solution: [], players: [], turn: 0}
 
-// nick = prompt("Please enter a nickname below: \n\n" + getGameRules(), 'Onipy');     // require a nickname
+nick = prompt("Please enter a nickname below: \n\n" + getGameRules(), 'Onipy');     // require a nickname
+// var nick = new Promise(function(resolve, reject) {
+//   resolve('Success!');
+// });
 while (!nick) {
     // FIXME @jleong: check for names that exist - async false should solve problem
     // $.get('api/clients/names', function(data, status) {
@@ -126,10 +129,9 @@ $(function () {
         // clean data (start new game)
         newGame();
         GAME_STATE['board'] = initGameData['board'];
-        if  (initGameData.includes('key')) {
+        if  (initGameData.hasOwnProperty('key')) {
             GAME_STATE['key'] = initGameData['key'];
         }
-        createBoard(initGameData['board']);
     });
 
     socket.on('startTimer', function(seconds) {
@@ -174,7 +176,7 @@ function createBoard(board) {
         wordEl = $(`.word-${i}`);                                           // grab the word button on board
         wordEl.val(word['word']);                                           // edit word's value (text)
         wordEl.attr('id', `word-${word['word']}`);                          // update word's id
-        updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color
+        // updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color - todo: remove
     }
 }
 
@@ -275,6 +277,7 @@ function newGameData() {
         words: {},      // state of the board
         players: [],    // server's "clients"
         board: [],
+        scores:[1: 0, 2: 0],
         running: false,
         socket: null,
         id: null,
