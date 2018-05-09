@@ -54,10 +54,9 @@ app.get('/api/clients/names', function(req, res) {
 app.post('/api/clients', function(req, res) {
 	client = req.body;
 	(client.ready === "true") ? numChecks++ : numChecks--;
-	console.log("numChecks: " + numChecks);
-	console.log(clients);
+	// console.log("numChecks: " + numChecks);
+	// console.log(clients);
 	if ((numChecks == clients.length) & (numChecks >= 4)){
-		console.log('createNewGame()');
 		createNewGame(getSocketByID(client.id));
 	}
 	res.send('server ack client post sendReady()');
@@ -133,28 +132,6 @@ io.on('connection', function(socket) {
 		// if (clients.length < 4) {
 		// 	endGame();
 		// }
-	});
-
-	socket.on('nextPhaseReady', function() { // timer expired
-		numTimers++;
-		if (numTimers == clients.length) { // make sure everyone's timer has ended
-			switch (phase) {
-				case 'hinting':
-					io.emit('gameState', {
-						type: 'hint',
-						info: hint['word']
-					});
-					io.emit('startTimer', 60);
-					phase = 'guessing';
-					break;
-
-				case 'guessing':
-					getVoteMajority();
-					io.emit('startTimer', 60);
-					break;
-			}
-			numTimers = 0;
-		}
 	});
 
 	socket.on('message', function(msg) {
@@ -281,6 +258,11 @@ io.on('connection', function(socket) {
 		messages.push(response);
 		io.emit('message', response);
 	});
+
+	socket.on('nextPhaseReady', function() { // timer expired
+		console.log('nextPhaseReady sent back from client');
+		nextPhaseReady();
+	});
 });
 
 function createNewGame(socket) {
@@ -339,7 +321,35 @@ function createNewGame(socket) {
 	}
 	console.log('game initialization finished')
 	io.emit('clients', clients);
-	
+	io.emit('startTimer', 15);
+	io.emit('message', {
+		type: 'system',
+		text: 'Hinting phase started. Spymaster for red team has 60 seconds to hint a word...'
+	});
+}
+
+function nextPhaseReady() {
+	numTimers++;
+	console.log (`timers received: ${numTimers}`);
+	if (numTimers == clients.length) { // make sure everyone's timer has ended
+		console.log('all timers received, next phase triggered')
+		switch (phase) {
+			case 'hinting':
+				io.emit('gameState', {
+					type: 'hint',
+					info: hint['word']
+				});
+				io.emit('startTimer', 60);
+				phase = 'guessing';
+				break;
+
+			case 'guessing':
+				getVoteMajority();
+				io.emit('startTimer', 60);
+				break;
+		}
+		numTimers = 0;
+	}
 }
 
 function endGame() {

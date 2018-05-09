@@ -133,9 +133,10 @@ $(function () {
     });
 
     socket.on('startTimer', function(seconds) {
+        console.log('timer tarted for ' + seconds + ' seconds');
         startNewTimer(seconds);
         if (!GAME_STATE['running'] & GAME_STATE['time'] < 0) {
-            socekt.emit('nextPhaseReady');
+            socket.emit('nextPhaseReady');
         }
     });
 
@@ -273,7 +274,7 @@ function newGameData() {
         votes: [],
         words: {},      // state of the board
         players: [],    // server's "clients"
-        board: [].
+        board: [],
         running: false,
         socket: null,
         id: null,
