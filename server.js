@@ -373,9 +373,6 @@ function createNewGame() {
 }
 
 function nextPhaseReady() {
-	if (!gameRunning){
-		return;
-	}
 	numTimers++;
 	if ((numTimers == clients.length)) { // make sure everyone's timer has ended
 		console.log('all timers received, next phase triggered')
@@ -384,9 +381,9 @@ function nextPhaseReady() {
 			phase = 'hinting';
 			io.emit('message', {
 				type: 'system',
-				text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 60 seconds to hint a word.`
+				text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 120 seconds to hint a word.`
 			});
-			io.emit('startTimer', 60);
+			io.emit('startTimer', 120);
 			gameInit = false;
 		} else {
 			if (guessCorrect) { // agents guessed correctly and get to go again
@@ -405,9 +402,9 @@ function nextPhaseReady() {
 					phase = 'hinting';
 					io.emit('message', {
 						type: 'system',
-						text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 60 seconds to hint a word.`
+						text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 120 seconds to hint a word.`
 					});
-					io.emit('startTimer', 60);
+					io.emit('startTimer', 120);
 					votes = [];
 					hints = {};
 				} else {
@@ -446,15 +443,18 @@ function nextPhaseReady() {
 							}
 							phase = 'hinting';
 							getVoteMajority();
+							if (!gameRunning){
+								return;
+							}
 							if (guessCorrect) {
 								io.emit('startTimer', 0);
 								break;
 							}
 							io.emit('message', {
 								type: 'system',
-								text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 60 seconds to hint a word.`
+								text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 120 seconds to hint a word.`
 							});
-							io.emit('startTimer', 60);
+							io.emit('startTimer', 120);
 							hint = {};					// hinting phase next, reset hint
 							break;
 					}
@@ -472,10 +472,10 @@ function endGame() {
 	words = {};
 	hint = {};
 	var turn = 0;
-	var phase;
-	var numTimers;
-	var numChecks;
-	var timer;
+	var phase = '';
+	var numTimers = 0;
+	var numChecks = 0;
+	// var timer; // not used
 	gameInit = true;
 	guessCorrect = false;
 	swapTeams = false;
