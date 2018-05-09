@@ -377,7 +377,7 @@ function nextPhaseReady() {
 				type: 'system',
 				text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 60 seconds to hint a word.`
 			});
-			io.emit('startTimer', 20);
+			io.emit('startTimer', 60);
 			gameInit = false;
 		} else {
 			if (guessCorrect) { // agents guessed correctly and get to go again
@@ -387,7 +387,7 @@ function nextPhaseReady() {
 					type: 'system',
 					text: `The current hint is: ${hint['word']} for ${hint['num']} tile(s). ${(turn == 1) ? 'Red' : 'Blue'} Agents have 60 seconds to guess more words.`
 				});
-				io.emit('startTimer', 20);
+				io.emit('startTimer', 60);
 				votes = [];
 			} else {
 				if (swapTeams) {
@@ -398,7 +398,7 @@ function nextPhaseReady() {
 						type: 'system',
 						text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 60 seconds to hint a word.`
 					});
-					io.emit('startTimer', 20);
+					io.emit('startTimer', 60);
 					votes = [];
 					hints = {};
 				} else {
@@ -423,7 +423,7 @@ function nextPhaseReady() {
 								text: `The current hint is: ${hint['word']} for ${hint['num']} tile(s). ${(turn == 1) ? 'Red' : 'Blue'} Agents have 60 seconds to guess words.`
 							});
 							votes = [];					// guessing phase next, reset votes
-							io.emit('startTimer', 20);
+							io.emit('startTimer', 60);
 							break;
 						case 'guessing':
 							if (Object.keys(votes).length === 0) { // no hint, switch teams
@@ -445,7 +445,7 @@ function nextPhaseReady() {
 								type: 'system',
 								text: `Hinting phase started. ${(turn == 1) ? 'Red' : 'Blue'} Spymaster has 60 seconds to hint a word.`
 							});
-							io.emit('startTimer', 20);
+							io.emit('startTimer', 60);
 							hint = {};					// hinting phase next, reset hint
 							break;
 					}
