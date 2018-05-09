@@ -283,6 +283,15 @@ io.on('connection', function(socket) {
 				}
 				break;
 			case 'chat':
+				for (var i = 0; i < clients.length; i++) {
+					if (clients[i]['team'] == turn && isSpymaster(socket.id)) {
+						socket.emit('message', {
+							type: 'error',
+							text: `The Spymaster may not send chat messages during his/her team's turn.` // sent only to client
+						});
+						return;
+					}
+				}
 				Object.assign(response, {
 					type: 'chat',
 					text: `${nickname}: ${msg['text']}`
