@@ -171,7 +171,6 @@ io.on('connection', function(socket) {
 								text: 'The Spymaster may not vote.'
 							});
 						}
-						console.log(inputs[1]);
 						// check if vote exists in game board
 						if (inputs[1] in words) {
 							if (words[inputs[1]].revealed == 1) {
@@ -206,7 +205,6 @@ io.on('connection', function(socket) {
 						break;
 
 					case 'hint':
-						console.log(inputs);
 
 						// if user is not spymaster, send error
 						if (!isSpymaster(socket.id)) {
@@ -216,9 +214,8 @@ io.on('connection', function(socket) {
 							});
 							return;
 						}
-
 						//check if hint exists in dictionary of words
-						if (inputs[0] in dictionary) { // check if word is actually a word
+						if (dictionary.indexOf(inputs[0]) >= 0) { // check if word is actually a word
 							if (!(inputs[0] in words)) { // check if word is on the board
 								var keys = Object.keys(words);
 								for (var i = 0; i < keys; i++) { // check if word is within another word on the board
@@ -275,7 +272,6 @@ io.on('connection', function(socket) {
 		}
 		// do this regardless
 		messages.push(response);
-		console.log(response);
 		io.emit('message', response);
 	});
 });
