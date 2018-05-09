@@ -138,14 +138,19 @@ io.on('connection', function(socket) {
 	socket.on('nextPhaseReady', function() { // timer expired
 		numTimers++;
 		if (numTimers == clients.length) { // make sure everyone's timer has ended
-			switch(true) {
-				case (phase == 'hinting'):
-					io.emit('')
+			switch (phase) {
+				case 'hinting':
+					io.emit('gameState', {
+						type: 'hint',
+						info: hint['word']
+					});
+					io.emit('startTimer', 60);
 					phase = 'guessing';
 					break;
 
-				case (phase == 'guessing'):
-					phase = 'hinting';
+				case 'guessing':
+					getVoteMajority();
+					io.emit('startTimer', 60);
 					break;
 			}
 			numTimers = 0;
@@ -403,28 +408,57 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 				info: 1
 			});
 		}
-
 	}
 
 	if (words[vote]['team'] == turn) { // team's vote is correct
-
 		if (checkWinCondition()) { // checked if team won
 			io.emit('gameState', {
 				type: 'end',
 				info: turn
 			});
-
 		} else { // team guessed correctly but has not won yet
-			io.emit('gameState', {
-				type: 'vote',
-				info: {
-					word: vote,
-					correct: true
-				}
-			});
 			hint['num']--;
+
+			if (hint['num'] == 0) { // the team is out of guesses
+				turn = (turn == 1) ? 2 : 1;
+				phase = 'hinting';
+				io.emit('gameState', {
+					type: 'vote',
+					info: {
+						word: vote,
+						correct: true,
+						switch: true,
+						turn: turn,
+						wordTeam: words[vote]['team']
+					}
+				});
+			} else { // the team still has more guesses
+				io.emit('gameState', {
+					type: 'vote',
+					info: {
+						word: vote,
+						correct: true,
+						switch: false,
+						turn: turn,
+						wordTeam: words[vote]['team']
+					}
+				});
+			}
 			words[vote]['revealed'] = 1;
 		}
+	} else { // team's vote is incorrect
+		turn = (turn == 1) ? 2 : 1;
+		io.emit('gameState', {
+			type: 'vote',
+			info: {
+				word: vote,
+				correct: false,
+				switch: true,
+				turn: turn,
+				wordTeam: words[vote]['team']
+			}
+		})
+		phase = 'hinting';
 	}
 }
 
