@@ -206,6 +206,7 @@ io.on('connection', function(socket) {
 						break;
 
 					case 'hint':
+						console.log(inputs);
 
 						// if user is not spymaster, send error
 						if (!isSpymaster(socket.id)) {
@@ -217,38 +218,38 @@ io.on('connection', function(socket) {
 						}
 
 						//check if hint exists in dictionary of words
-						if (inputs[1] in dictionary) { // check if word is actually a word
-							if (!(inputs[1] in words)) { // check if word is on the board
+						if (inputs[0] in dictionary) { // check if word is actually a word
+							if (!(inputs[0] in words)) { // check if word is on the board
 								var keys = Object.keys(words);
 								for (var i = 0; i < keys; i++) { // check if word is within another word on the board
-									if (inputs[1] in keys[i]) {
+									if (inputs[0] in keys[i]) {
 										socket.emit('message', {
 											type: 'error',
-											text: `invalid hint: your hint "${inputs[1]}" may not be part of a word on the board`
+											text: `invalid hint: your hint "${inputs[0]}" may not be part of a word on the board`
 										});
 										return;
 									}
 								}
-								hint = {word: inputs[1], num: Number(inputs[2])};
+								hint = {word: inputs[0], num: Number(inputs[1])};
 								Object.assign(response, {
 									type: 'system',
 									text: `${nickname} has hinted the word "${hint['word']}"`
 								});
 								io.emit('gameState', {
 									type: 'hint',
-									info: inputs[1]
+									info: inputs[0]
 								})
 							} else {
 								socket.emit('message', {
 									type: 'error',
-									text: `invalid hint: you cannot hint "${inputs[1]}" if exists on the board`
+									text: `invalid hint: you cannot hint "${inputs[0]}" if exists on the board`
 								});
 								return;
 							}
 						} else {
 							socket.emit('message', {
 								type: 'error',
-								text: `invalid hint: "${inputs[1]}" not found in dictionary`
+								text: `invalid hint: "${inputs[0]}" not found in dictionary`
 							});
 							return;
 						}
