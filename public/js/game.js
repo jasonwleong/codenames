@@ -127,6 +127,7 @@ $(function () {
         GAME_STATE['scores'][state['info']['wordTeam']]++;
         GAME_STATE['turn'] = state['info']['turn'];
         if (state['type'] == 'end') {
+            stopTimerAndWait();
             var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
             chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
         }
@@ -239,7 +240,7 @@ function startNewTimer(socket, time) {          // socket to ping server to cont
     return GAME_STATE['timer'];
 }
 
-function stopTimerAndWait(time) {
+function stopTimerAndWait() {
     clearInterval(GAME_STATE['timer']);
     GAME_STATE['time'] = 0;
     GAME_STATE['running'] = false;
