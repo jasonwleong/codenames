@@ -25,6 +25,7 @@ var numChecks = 0;		// same with timers, but with the ready checks before a game
 var gameInit = true;
 var guessCorrect = false;
 var swapTeams = false;
+var gameRunning = false;
 
 var allWords = allWordsText.includes('\r') ? allWordsText.split('\r\n') : allWordsText.split('\n');
 var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : dictionaryText.split('\n');
@@ -359,11 +360,15 @@ function createNewGame() {
 		text: 'Game is starting in 10 seconds'
 	});
 	console.log('game initialization finished');
+	gameRunning = true;
 }
 
 function nextPhaseReady() {
+	if (!gameRunning){
+		return;
+	}
 	numTimers++;
-	if (numTimers == clients.length) { // make sure everyone's timer has ended
+	if ((numTimers == clients.length)) { // make sure everyone's timer has ended
 		console.log('all timers received, next phase triggered')
 		if (gameInit) { // initial game state, game starts in hinting phase with team 1
 			turn = 1;
@@ -452,6 +457,7 @@ function nextPhaseReady() {
 }
 
 function endGame() {
+	console.log('Win achieved, ending game...')
 	messages = [];
 	votes = [];
 	words = {};
@@ -464,6 +470,7 @@ function endGame() {
 	gameInit = true;
 	guessCorrect = false;
 	swapTeams = false;
+	gameRunning = false;
 }
 
 function assignSpymasters() {
@@ -523,6 +530,7 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 					turn: turn
 				}
 			});
+			endGame();
 		} else {
 			io.emit('gameState', {
 				type: 'end',
@@ -533,82 +541,84 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 					turn: turn
 				}
 			});
+			endGame();
 		}
 		io.emit('message', {
 			type: 'system',
 			text: `"${vote}" was the assassin! Team ${(turn == 1) ? 'Blue' : 'Red'} wins!`
 		});
-	}
+	} else {
+		if (words[vote]['team'] == turn) { // team's vote is correct
+			if (checkWinCondition()) { // checked if team won
+				io.emit('gameState', {
+					type: 'end',
+					info: {
+						word: vote,
+						winner: turn,
+						turn: turn,
+						wordTeam: words[vote]['team']
+					}
+				});
+				io.emit('message', {
+					type: 'system',
+					text: `"${vote}" was correct. Team ${(turn == 1) ? 'Red' : 'Blue'} wins!`
+				});
+				endGame();
+			} else { // team guessed correctly but has not won yet
+				hint['num']--;
 
-	if (words[vote]['team'] == turn) { // team's vote is correct
-		if (checkWinCondition()) { // checked if team won
+				if (hint['num'] == 0) { 	// the team is out of guesses
+					turn = (turn == 1) ? 2 : 1;
+					io.emit('gameState', {
+						type: 'vote',
+						info: {
+							word: vote,
+							correct: true,
+							switch: true,
+							turn: turn,
+							wordTeam: words[vote]['team']
+						}
+					});
+					io.emit('message', {
+						type: 'system',
+						text: `"${vote}" was correct. Team ${(turn == 1) ? 'Blue' : 'Red'} is out of guesses. Switching teams...`
+					});
+				} else { 					// the team still has more guesses
+					guessCorrect = true;
+					io.emit('gameState', {
+						type: 'vote',
+						info: {
+							word: vote,
+							correct: true,
+							switch: false,
+							turn: turn,
+							wordTeam: words[vote]['team']
+						}
+					});
+					io.emit('message', {
+						type: 'system',
+						text: `"${vote}" was correct. Team ${(turn == 1) ? 'Red' : 'Blue'} still has ${hint['num']} guesses left. Restarting timer...`
+					});
+				}
+				words[vote]['revealed'] = 1;
+			}
+		} else { // team's vote is incorrect
+			turn = (turn == 1) ? 2 : 1;
 			io.emit('gameState', {
-				type: 'end',
+				type: 'vote',
 				info: {
 					word: vote,
-					winner: turn,
+					correct: false,
+					switch: true,
 					turn: turn,
 					wordTeam: words[vote]['team']
 				}
 			});
 			io.emit('message', {
 				type: 'system',
-				text: `"${vote}" was correct. Team ${(turn == 1) ? 'Red' : 'Blue'} wins!`
+				text: `"${vote}" was incorrect. Switching teams...`
 			});
-		} else { // team guessed correctly but has not won yet
-			hint['num']--;
-
-			if (hint['num'] == 0) { 	// the team is out of guesses
-				turn = (turn == 1) ? 2 : 1;
-				io.emit('gameState', {
-					type: 'vote',
-					info: {
-						word: vote,
-						correct: true,
-						switch: true,
-						turn: turn,
-						wordTeam: words[vote]['team']
-					}
-				});
-				io.emit('message', {
-					type: 'system',
-					text: `"${vote}" was correct. Team ${(turn == 1) ? 'Blue' : 'Red'} is out of guesses. Switching teams...`
-				});
-			} else { 					// the team still has more guesses
-				guessCorrect = true;
-				io.emit('gameState', {
-					type: 'vote',
-					info: {
-						word: vote,
-						correct: true,
-						switch: false,
-						turn: turn,
-						wordTeam: words[vote]['team']
-					}
-				});
-				io.emit('message', {
-					type: 'system',
-					text: `"${vote}" was correct. Team ${(turn == 1) ? 'Red' : 'Blue'} still has ${hint['num']} guesses left. Restarting timer...`
-				});
-			}
-			words[vote]['revealed'] = 1;
 		}
-	} else { // team's vote is incorrect
-		turn = (turn == 1) ? 2 : 1;
-		io.emit('gameState', {
-			type: 'vote',
-			info: {
-				word: vote,
-				correct: false,
-				switch: true,
-				turn: turn,
-				wordTeam: words[vote]['team']
-			}
-		});
-		io.emit('message', {
-			type: 'system',
-			text: `"${vote}" was incorrect. Switching teams...`
-		});
 	}
 }
 
