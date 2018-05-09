@@ -132,6 +132,18 @@ $(function () {
         }
         showScores();
     });
+
+    // regular document ready functions
+    // $('#search-form').submit(function(e) {
+    //     e.preventDefault();
+    //     $('search-results').html('')        // clean up results
+    //     var search = $("#search-input").val();
+    //     $.get('/api/dictionary/?' + search.val(), function (req, status, res) {
+    //         for (var i = 0; i < res.length; i++) {
+    //             showDictionaryEntry(res[i]);
+    //         }
+    //     });
+    // }
 });
 
 // DISPLAY METHODS
@@ -162,6 +174,10 @@ function createBoard(board) {
         updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color (should only affect spymasters)
     }
 }
+
+// function showDictionaryEntry(word) {
+//     $('search-results').append(`<p id=dict-${word}>${word}<p>`)
+// }
 
 function showPlayer(player) {
      $('#players').append(`<li id="${player['id']}" class="player ${player['team'] == 1 ? 'red': 'blue'}">

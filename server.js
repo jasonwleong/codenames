@@ -72,9 +72,9 @@ app.get('/api/messages/?type=:type', function(req, res) {
 app.get('/api/votes', function(req, res) {
 	res.send(votes);
 });
-app.get('api/dictionary', function(req, res) {
-	res.send(dictionary);
-})
+app.get('api/dictionary/?:query', function(req, res) {
+	res.send(dictionary.filter(x => x.startsWith(req.params.query)));
+});
 
 // CONNECTION
 // very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
@@ -420,7 +420,6 @@ function nextPhaseReady() {
 							votes = [];					// guessing phase next, reset votes
 							io.emit('startTimer', 20);
 							break;
-
 						case 'guessing':
 							if (Object.keys(votes).length === 0) { // no hint, switch teams
 								io.emit('message', {
