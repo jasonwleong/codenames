@@ -119,6 +119,7 @@ io.on('connection', function(socket) {
 		for (var i = 0; i < clients.length; i++) {
 			if (clients[i].id == socket.id) {
 				clients.splice(i, 1);
+				break;
 			}
 		}
 
