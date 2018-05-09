@@ -87,7 +87,7 @@ io.on('connection', function(socket) {
 		var newPlayer = {
 			id: socket.id,
 			nickname: nickname,
-			role: "spymaster",	// to be updated
+			role: "agent",	// to be updated
 			team: (clients.length % 2 == 0) ? 1 : 2 // to be updated
 		}
 		clients.push(newPlayer);
@@ -120,7 +120,6 @@ io.on('connection', function(socket) {
 			if (clients[i].id == socket.id) {
 				clients.splice(i, 1);
 			}
-			break;
 		}
 
 		// Display disconnection message
@@ -170,14 +169,16 @@ io.on('connection', function(socket) {
 								type: 'error',
 								text: 'The Spymaster may not vote.'
 							});
+							return;
 						}
 						// check if vote exists in game board
-						if (inputs[1] in words) {
-							if (words[inputs[1]].revealed == 1) {
+						if (inputs[0] in words) {
+							if (words[inputs[0]].revealed == 1) {
 								socket.emit('message', {
 									type: 'error',
-									text: `invalid vote: "${inputs[1]}" has already been revealed`
+									text: `invalid vote: "${inputs[0]}" has already been revealed`
 								});
+								return;
 							}
 
 							// remove vote belonging to client if it exists, add new vote
@@ -187,18 +188,18 @@ io.on('connection', function(socket) {
 							votes.push({
 								id: socket.id,
 								nickname: nickname,
-								word: inputs[1]
+								word: inputs[0]
 							});
 
 							// adjust message
 							Object.assign(response, {
 								type: 'system',
-								text: `${nickname} has voted for "${inputs[1]}"`
+								text: `${nickname} has voted for "${inputs[0]}"`
 							});
 						} else {
 							socket.emit('message', {
 								type: 'error',
-								text: `invalid vote: "${inputs[1]}" does not exist on the board`
+								text: `invalid vote: "${inputs[0]}" does not exist on the board`
 							});
 							return;
 						}
