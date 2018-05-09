@@ -105,7 +105,7 @@ io.on('connection', function(socket) {
 		// 	if (clients[i]['id'] != socket.id)
 		// 		socket.broadcast.to(clients[i]['id']).emit('newPlayer', newPlayer);
 		// }
-		socket.emit('newUser', socket.id);
+		socket.emit('userID', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
 	});
@@ -309,7 +309,8 @@ function createNewGame() {
 			turn: turn,
 			board: board
 		};
-		Object.assign(newGameData, {role: clients[i]['role']});		// provide every client with their role
+		Object.assign(newGameData, {role: clients[i]['role'],		// provide every client with their role and id
+									id: clients[i]['id']});
 		if (isSpymaster(clients[i]['id'])) {						// provide key if the client is a spymaster
 			Object.assign(newGameData, {key: key});
 		}

@@ -94,7 +94,7 @@ $(function () {
         return clearChatAndEndForm();
     });
 
-    socket.on('newUser', function(id) {
+    socket.on('userID', function(id) {
         GAME_STATE['id'] = id;
         console.log('my id: ' + id);
     });
@@ -128,6 +128,7 @@ $(function () {
         // check if spymaster? or just catch server's 'key' emit
         // clean data (start new game)
         GAME_STATE = newGameData();                         // new data for client
+        GAME_STATE['id'] = initGameData['id']               // set client's id (socket)
         GAME_STATE['role'] = initGameData['role'];          // set client's role
         GAME_STATE['board'] = initGameData['board'];        // set client's board (same for everyone)
         if  (initGameData.hasOwnProperty('key')) {
