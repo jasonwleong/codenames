@@ -127,19 +127,19 @@ $(function () {
         // remove ready form checkbox
         // check if spymaster? or just catch server's 'key' emit
         // clean data (start new game)
+        console.log('newGame received')
         newGame();
         GAME_STATE['board'] = initGameData['board'];
         if  (initGameData.hasOwnProperty('key')) {
             GAME_STATE['key'] = initGameData['key'];
         }
+        createBoard(initGameData['board']);
     });
 
     socket.on('startTimer', function(seconds) {
         console.log('timer tarted for ' + seconds + ' seconds');
-        startNewTimer(seconds);
-        if (!GAME_STATE['running'] & GAME_STATE['time'] < 0) {
-            socket.emit('nextPhaseReady');
-        }
+        startNewTimer(socket, seconds);
+        console.log('startTimer called');
     });
 
     socket.on('gameState', function(state) {
@@ -215,13 +215,16 @@ function updateBoardImmediate(element, team, revealed) {
     element.attr("color", `team-${team}-${revealed}`);
 }
 
-function startNewTimer(time) {          // time in seconds
+function startNewTimer(socket, time) {          // socket to ping server to continue game logic, time in seconds
     clearInterval(GAME_STATE['timer']);
     GAME_STATE['timer'] = setInterval(function() {
         GAME_STATE['running'] = true;
         document.getElementById("time").innerHTML = "Time: " + time + "s";
         if (time < 0) {
             stopTimerAndWait();
+            // if (!GAME_STATE['running'] & GAME_STATE['time'] <= 0) {
+            socket.emit('nextPhaseReady');
+            // }
         }
         time--;
         GAME_STATE['time'] = time;
@@ -230,10 +233,12 @@ function startNewTimer(time) {          // time in seconds
 }
 
 function stopTimerAndWait(time) {
+    console.log('stopTimerAndWait');
     clearInterval(GAME_STATE['timer']);
     GAME_STATE['time'] = 0;
     GAME_STATE['running'] = false;
     document.getElementById("time").innerHTML = "waiting...";
+    console.log(GAME_STATE);
 }
 
 function voteWord(socket, word) {
@@ -277,7 +282,7 @@ function newGameData() {
         words: {},      // state of the board
         players: [],    // server's "clients"
         board: [],
-        scores:[1: 0, 2: 0],
+        scores: {1: 0, 2: 0},
         running: false,
         socket: null,
         id: null,

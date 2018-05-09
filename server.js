@@ -301,31 +301,27 @@ function createNewGame(socket) {
 		});
 	}
 	board = shuffle(board);						// shuffle board
-	for (var i = 0; i < clients.length; i++) {	// send neutral board to agents
-		socket.broadcast.to(clients[i]['id']).emit('newGame', {
-			turn: turn,
-			phase: phase,
-			board: board,
-			team: clients[i]['team'],
-			role: clients[i]['role']
-		});
+	var key = JSON.parse(JSON.stringify(board))
+	var newGameData = {
+		turn: turn,
+		board: board
+	};
+	for (var i = 0; i < board.length; i++) {	// assign answers to key[]
+		Object.assign(key[i], {team: words[key[i]['word']]['team']})
 	}
-	for (var i = 0; i < board.length; i++) {	// assign answers to board[]
-		Object.assign(board[i], {team: words[board[i]['word']]['team']})
-	}
-
 	for (var i = 0; i < clients.length; i++) {	// send board with answers to spymasters
 		if (isSpymaster(clients[i]['id'])) {
-			socket.broadcast.to(clients[i]['id']).emit('key', board);
+			Object.assign(newGameData, {key: key});
 		}
 	}
-	console.log('game initialization finished')
+	io.emit('newGame', newGameData);
 	io.emit('clients', clients);
-	io.emit('startTimer', 15);
+	io.emit('startTimer', 5);				// FIXME: revert to 60
 	io.emit('message', {
 		type: 'system',
 		text: 'Hinting phase started. Spymaster for red team has 60 seconds to hint a word...'
 	});
+	console.log('game initialization finished')
 }
 
 function nextPhaseReady() {
