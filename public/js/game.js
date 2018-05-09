@@ -127,19 +127,19 @@ $(function () {
         // remove ready form checkbox
         // check if spymaster? or just catch server's 'key' emit
         // clean data (start new game)
-        console.log('newGame received')
-        newGame();
-        GAME_STATE['board'] = initGameData['board'];
+        GAME_STATE = newGameData();                         // new data for client
+        GAME_STATE['role'] = initGameData['role'];          // set client's role
+        GAME_STATE['board'] = initGameData['board'];        // set client's board (same for everyone)
         if  (initGameData.hasOwnProperty('key')) {
             GAME_STATE['key'] = initGameData['key'];
+            createBoard(initGameData['key']);
+        } else {
+            createBoard(initGameData['board']);
         }
-        createBoard(initGameData['board']);
     });
 
     socket.on('startTimer', function(seconds) {
-        console.log('timer tarted for ' + seconds + ' seconds');
         startNewTimer(socket, seconds);
-        console.log('startTimer called');
     });
 
     socket.on('gameState', function(state) {
@@ -154,7 +154,6 @@ $(function () {
         }
     });
 });
-
 
 // DISPLAY METHODS
 function clearPlayers() {
@@ -176,7 +175,7 @@ function createBoard(board) {
         wordEl = $(`.word-${i}`);                                           // grab the word button on board
         wordEl.val(word['word']);                                           // edit word's value (text)
         wordEl.attr('id', `word-${word['word']}`);                          // update word's id
-        // updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color - todo: remove
+        updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color (should only affect spymasters)
     }
 }
 
@@ -192,14 +191,9 @@ function showScore() {
 }
 
 // GAME METHODS - requires usage of GAME_STATE variables
-function newGame() {
-    GAME_STATE = newGameData();
-}
-
 function sendReady(checkbox) {
-    console.log({id: GAME_STATE['id'], ready: checkbox.checked});
     $.post('api/clients', {id: GAME_STATE['id'], ready: checkbox.checked}, function(data, status, res) {
-        console.log(data);
+        console.log(data);          // remove
     });
     console.log('sendReady complete');
     // socket.emit('readyGame', checkbox.checked)
@@ -233,12 +227,10 @@ function startNewTimer(socket, time) {          // socket to ping server to cont
 }
 
 function stopTimerAndWait(time) {
-    console.log('stopTimerAndWait');
     clearInterval(GAME_STATE['timer']);
     GAME_STATE['time'] = 0;
     GAME_STATE['running'] = false;
     document.getElementById("time").innerHTML = "waiting...";
-    console.log(GAME_STATE);
 }
 
 function voteWord(socket, word) {

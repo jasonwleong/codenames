@@ -58,7 +58,7 @@ app.post('/api/clients', function(req, res) {
 	// console.log("numChecks: " + numChecks);
 	// console.log(clients);
 	if ((numChecks == clients.length) & (numChecks >= 4)){
-		createNewGame(getSocketByID(client.id));
+		createNewGame();
 	}
 	res.send('server ack client post sendReady()');
 });
@@ -266,11 +266,11 @@ io.on('connection', function(socket) {
 	});
 });
 
-function createNewGame(socket) {
+function createNewGame() {
 	console.log('starting new game...');
+
 	// assign random unique words to words{} from allWords[]
 	var temparray = shuffle([...Array(allWords.length).keys()]).splice(0,25); // converts temparray to list (length 25) of random numbers up to allWords.length
-
 
 	for (var i = 0; i < temparray.length; i++) { // converts numbers in temparray to words in allWords to be stored in words
 		var team;
@@ -283,33 +283,38 @@ function createNewGame(socket) {
 		words[allWords[temparray[i]]] = {team: team, revealed: 0};
 	}
 
-	assignSpymasters(); // implementation for getting ready checks not done, so this will be put on hold or it will throw an error
+	// other initial setup
+	turn = 1;
+	phase = 'hinting';
 
-	// if spymaster, team is revealed for each word
-	// if not spymaster, all words are neutral
-	console.log('initializing board...');
+	// assign spymasters and send this data to all clients
+	assignSpymasters();
+
 	var keys = Object.keys(words);				// array of the words
 	var board = [];								// board to be processed twice (for agent, then spymasters)
 	for (var i = 0; i < keys.length; i++) { 	// populate board[] with words and neutral team associations
 		board.push({
 			word: keys[i],
-			team: 0,
+			team: 4,							// 4 is now default (unrevealed)
 			revealed: 0
 		});
 	}
-	board = shuffle(board);						// shuffle board
-	var key = JSON.parse(JSON.stringify(board))
-	var newGameData = {
-		turn: turn,
-		board: board
-	};
-	for (var i = 0; i < board.length; i++) {	// assign answers to key[]
+	board = shuffle(board);											// shuffle board
+	var key = JSON.parse(JSON.stringify(board));
+	for (var i = 0; i < board.length; i++) {						// create key if spymaster, team is revealed for each word
 		Object.assign(key[i], {team: words[key[i]['word']]['team']})
 	}
-	for (var i = 0; i < clients.length; i++) {	// send board with answers to spymasters
-		if (isSpymaster(clients[i]['id'])) {
+	for (var i = 0; i < clients.length; i++) {						// iterate through all clients
+		var newGameData = {
+			turn: turn,
+			board: board
+		};
+		Object.assign(newGameData, {role: clients[i]['role']});		// provide every client with their role
+		if (isSpymaster(clients[i]['id'])) {						// provide key if the client is a spymaster
 			Object.assign(newGameData, {key: key});
 		}
+		var socket = getSocketByID(clients[i]['id']);
+		socket.emit('newGame', newGameData);						// emit personalized data to each client
 	}
 	io.emit('newGame', newGameData);
 	io.emit('clients', clients);
