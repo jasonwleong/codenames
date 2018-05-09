@@ -13,7 +13,7 @@ var allWordsText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words
 var dictionaryText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt'), 'utf8').toString()
 
 // Variables
-var clients = [];		// array of objects -> { id: socketid, nickname: nickname, role: 'minion'|'spymaster', team: 1|2 }
+var clients = [];		// array of objects -> { id: socketid, nickname: nickname, role: 'agent'|'spymaster', team: 1|2 }
 var clientsDict = {};	// dictionary -> key = socket.id, value = client object
 var messages = [];		// array of objects -> { type: 'system'|'chat'|'error', text: (String)message }
 var votes = [];			// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
@@ -87,7 +87,7 @@ io.on('connection', function(socket) {
 		var newPlayer = {
 			id: socket.id,
 			nickname: nickname,
-			role: "piece of shit fuck ass",	// to be updated
+			role: "spymaster",	// to be updated
 			team: (clients.length % 2 == 0) ? 1 : 2 // to be updated
 		}
 		clients.push(newPlayer);
@@ -213,6 +213,7 @@ io.on('connection', function(socket) {
 								type: 'error',
 								text: 'Only the Spymaster is allowed to send a hint.'
 							});
+							return;
 						}
 
 						//check if hint exists in dictionary of words
@@ -225,6 +226,7 @@ io.on('connection', function(socket) {
 											type: 'error',
 											text: `invalid hint: your hint "${inputs[1]}" may not be part of a word on the board`
 										});
+										return;
 									}
 								}
 								hint = {word: inputs[1], num: Number(inputs[2])};
@@ -241,8 +243,8 @@ io.on('connection', function(socket) {
 									type: 'error',
 									text: `invalid hint: you cannot hint "${inputs[1]}" if exists on the board`
 								});
+								return;
 							}
-							return;
 						} else {
 							socket.emit('message', {
 								type: 'error',
@@ -259,6 +261,7 @@ io.on('connection', function(socket) {
 						});
 						return;
 				}
+				break;
 			case 'chat':
 				Object.assign(response, {
 					type: 'chat',
@@ -271,6 +274,7 @@ io.on('connection', function(socket) {
 		}
 		// do this regardless
 		messages.push(response);
+		console.log(response);
 		io.emit('message', response);
 	});
 });
@@ -302,7 +306,7 @@ function createNewGame(socket) {
 	// if not spymaster, all words are neutral
 	console.log('initializing board...');
 	var keys = Object.keys(words);				// array of the words
-	var board = [];								// board to be processed twice (for minions, then spymasters)
+	var board = [];								// board to be processed twice (for agent, then spymasters)
 	for (var i = 0; i < keys.length; i++) { 	// populate board[] with words and neutral team associations
 		board.push({
 			word: keys[i],
@@ -311,7 +315,7 @@ function createNewGame(socket) {
 		});
 	}
 	board = shuffle(board);						// shuffle board
-	for (var i = 0; i < clients.length; i++) {	// send neutral board to minions
+	for (var i = 0; i < clients.length; i++) {	// send neutral board to agents
 		socket.broadcast.to(clients[i]['id']).emit('newGame', {
 			turn: turn,
 			phase: phase,
@@ -329,7 +333,6 @@ function createNewGame(socket) {
 			socket.broadcast.to(clients[i]['id']).emit('key', board);
 		}
 	}
-	console.log(board);
 	console.log('game initialization finished')
 }
 
