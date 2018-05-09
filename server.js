@@ -202,6 +202,8 @@ io.on('connection', function(socket) {
 								nickname: nickname,
 								word: inputs[0].toLowerCase()
 							});
+							console.log(votes);
+							io.emit('votes', votes);
 
 							// adjust message
 							Object.assign(response, {
@@ -363,7 +365,7 @@ function createNewGame() {
 		var socket = getSocketByID(clients[i]['id']);
 		socket.emit('newGame', newGameData);						// emit personalized data to each client
 	}
-	io.emit('startTimer', 10);				// FIXME: revert to 60
+	io.emit('startTimer', 10);
 	io.emit('message', {
 		type: 'system',
 		text: 'Game is starting in 10 seconds'
@@ -375,7 +377,6 @@ function createNewGame() {
 function nextPhaseReady() {
 	numTimers++;
 	if ((numTimers == clients.length)) { // make sure everyone's timer has ended
-		console.log('all timers received, next phase triggered')
 		if (gameInit) { // initial game state, game starts in hinting phase with team 1
 			turn = 1;
 			phase = 'hinting';
@@ -391,9 +392,9 @@ function nextPhaseReady() {
 				phase = 'guessing';
 				io.emit('message', {
 					type: 'system',
-					text: `The current hint is: ${hint['word']} for ${hint['num']} tile(s). ${(turn == 1) ? 'Red' : 'Blue'} Agents have 60 seconds to guess more words.`
+					text: `The current hint is: "${hint['word']}" for ${hint['num']} tile(s). ${(turn == 1) ? 'Red' : 'Blue'} Agents have 30 seconds to guess more words.`
 				});
-				io.emit('startTimer', 60);
+				io.emit('startTimer', 30);
 				votes = [];
 			} else {
 				if (swapTeams) {
@@ -426,10 +427,10 @@ function nextPhaseReady() {
 							});
 							io.emit('message', {
 								type: 'system',
-								text: `The current hint is: ${hint['word']} for ${hint['num']} tile(s). ${(turn == 1) ? 'Red' : 'Blue'} Agents have 60 seconds to guess words.`
+								text: `The current hint is: "${hint['word']}" for ${hint['num']} tile(s). ${(turn == 1) ? 'Red' : 'Blue'} Agents have 30 seconds to guess words.`
 							});
 							votes = [];					// guessing phase next, reset votes
-							io.emit('startTimer', 60);
+							io.emit('startTimer', 30);
 							break;
 						case 'guessing':
 							if (Object.keys(votes).length === 0) { // no hint, switch teams
@@ -524,6 +525,7 @@ function getVoteMajority() {
 
 function validateVote(vote) { // gets word and checks if it is right or wrong
 
+	Object.assign(words[vote], {revealed: 1});
 	// if assassin, lose
 	// if right, check if the team has won
 	// if wrong, send back object -> {word: (String), correct: (bool)}
@@ -631,21 +633,27 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 	}
 }
 
-function checkWinCondition() { // checks if team with current turn has won
-	var numRevealed = 0;
+function checkWinCondition() {
+	var team1Points = 0;
+	var team2Points = 0;
 	var keys = Object.keys(words);
 	for (var i = 0; i < keys.length; i++) {
-		if (words[keys[i]]['team'] == turn && words[keys[i]]['revealed']) {
-			numRevealed++;
+		if (words[keys[i]]['revealed'] == 1){
+			if (words[keys[i]]['team'] == 1) {
+				team1Points++;
+				if (team1Points == 9){
+					return true;
+				}
+			}
+			if (words[keys[i]]['team'] == 2) {
+				team2Points++;
+				if (team2Points == 8){
+					return true;
+				}
+			}
 		}
 	}
-	if (turn == 1 && numRevealed == 9) {
-		return true;
-	} else if (turn == 2 && numRevealed == 8) {
-		return true;
-	} else {
-		return false;
-	}
+	return false;
 }
 
 function startNewTimer(time) {          // time in seconds
