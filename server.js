@@ -256,6 +256,7 @@ io.on('connection', function(socket) {
 									type: 'hint',
 									info: inputs[0]
 								})
+								io.emit('startTimer', 0);
 							} else {
 								socket.emit('message', {
 									type: 'error',
@@ -463,6 +464,7 @@ function endGame() {
 	var timer;
 	gameInit = true;
 	guessCorrect = false;
+	swapTeams = false;
 }
 
 function assignSpymasters() {
