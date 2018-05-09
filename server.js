@@ -25,6 +25,7 @@ var timer;				// global variable for time set by timer
 var numTimers = 0;		// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
 var numChecks = 0;		// same with timers, but with the ready checks before a game starts instead
 var gameInit = true;
+var guessCorrect = false;
 
 var allWords = allWordsText.includes('\r') ? allWordsText.split('\r\n') : allWordsText.split('\n');
 var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : dictionaryText.split('\n');
@@ -139,14 +140,18 @@ io.on('connection', function(socket) {
 		// msg = {text: "", type: vote|hint}
 		const response = {};
 		switch (msg['type']) {
-
 			case 'command':
+				if (turn != clientsDict[socket.id]['team']) { // it is not your team's turn, you may not send commands
+					socket.emit('message', {
+						type: 'error',
+						text: `You may not send commands when it is not your team's turn.`
+					});
+					return;
+				}
 				var inputs = msg['text'].split(' ');
-				// check spymaster
 				switch (msg['cmdType']) {
 
 					case 'vote':
-
 						// if user is spymaster, send error
 						if (isSpymaster(socket.id)) {
 							socket.emit('message', {
@@ -155,6 +160,14 @@ io.on('connection', function(socket) {
 							});
 							return;
 						}
+                        // give error if it is currently the hinting phase
+                        if (phase == 'hinting') {
+							socket.emit('message', {
+								type: 'error',
+								text: 'You may not guess during the hinting phase.'
+							});
+							return;
+                        }
 						// check if vote exists in game board
 						if (inputs[0] in words) {
 							if (words[inputs[0]].revealed == 1) {
@@ -199,6 +212,14 @@ io.on('connection', function(socket) {
 							});
 							return;
 						}
+                        // give error if it is currently the guessing phase
+                        if (phase == 'guessing') {
+							socket.emit('message', {
+								type: 'error',
+								text: 'You may not hint during the guessing phase.'
+							});
+							return;
+                        }
 						//check if hint exists in dictionary of words
 						if (dictionary.indexOf(inputs[0]) >= 0) { // check if word is actually a word
 							if (!(inputs[0] in words)) { // check if word is on the board
@@ -215,7 +236,7 @@ io.on('connection', function(socket) {
 								hint = {word: inputs[0], num: Number(inputs[1])};
 								Object.assign(response, {
 									type: 'system',
-									text: `${nickname} has hinted the word "${hint['word']}"`
+									text: `${nickname} has hinted the word "${hint['word']}" for ${inputs[1]} tiles.`
 								});
 								io.emit('gameState', {
 									type: 'hint',
@@ -328,45 +349,59 @@ function createNewGame() {
 
 function nextPhaseReady() {
 	numTimers++;
-	console.log (`timers received: ${numTimers}`);
-	if (gameInit) {
-		// other initial setup
-		turn = 1;
-		phase = 'hinting';
-		io.emit('message', {
-			type: 'system',
-			text: 'Hinting phase started. Spymaster for red team has 60 seconds to hint a word.'
-		});
-		io.emit('startTimer', 60);
-		gameInit = false;
-	}
 	if (numTimers == clients.length) { // make sure everyone's timer has ended
-		console.log('all timers received, next phase triggered')
-		switch (phase) {
-			case 'hinting':
+		if (gameInit) { // initial game state, game starts in hinting phase with team 1
+			turn = 1;
+			phase = 'hinting';
+			io.emit('message', {
+				type: 'system',
+				text: 'Hinting phase started. Spymaster for red team has 60 seconds to hint a word.'
+			});
+			io.emit('startTimer', 20);
+			gameInit = false;
+		} else {
+			if (guessCorrect) { // agents guessed correctly and get to go again
+				guessCorrect = false;
 				phase = 'guessing';
-				io.emit('gameState', {
-					type: 'hint',
-					info: hint['word']
-				});
 				io.emit('message', {
 					type: 'system',
-					text: `The current hint is: ${hint['word']}. Agents have 60 seconds to guess words.`
+					text: `The current hint is: ${hint['word']} for ${hint['num']} tiles. Agents have 60 seconds to guess more words.`
 				});
+				io.emit('startTimer', 20);
 				votes = [];
-				io.emit('startTimer', 60);
-				break;
+			} else {
+				console.log('all timers received, next phase triggered')
+				switch (phase) {
+					case 'hinting': 				// hinting just ended
+						phase = 'guessing'; 		// next phase: guessing
+						io.emit('gameState', {
+							type: 'hint',
+							info: hint['word']
+						});
+						io.emit('message', {
+							type: 'system',
+							text: `The current hint is: ${hint['word']} for ${hint['num']} tiles. Agents have 60 seconds to guess words.`
+						});
+						votes = [];					// guessing phase next, reset votes
+						io.emit('startTimer', 20);
+						break;
 
-			case 'guessing':
-				phase = 'hinting';
-				getVoteMajority();
-				io.emit('message', {
-					type: 'system',
-					text: 'Hinting phase started. Spymaster has 60 seconds to hint a word.'
-				});
-				io.emit('startTimer', 60);
-				hint = {};
-				break;
+					case 'guessing':
+						phase = 'hinting';
+						getVoteMajority();
+						if (guessCorrect) {
+							io.emit('startTimer', 0);
+							break;
+						}
+						io.emit('message', {
+							type: 'system',
+							text: 'Hinting phase started. Spymaster has 60 seconds to hint a word.'
+						});
+						io.emit('startTimer', 20);
+						hint = {};					// hinting phase next, reset hint
+						break;
+				}
+			}
 		}
 		numTimers = 0;
 	}
@@ -386,6 +421,7 @@ function endGame() {
 		io.emit('message', {type: 'system', text: 'There are less than four players connected, ending game'})
 	}
 	gameInit = true;
+	guessCorrect = false;
 }
 
 function assignSpymasters() {
@@ -479,7 +515,7 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 		} else { // team guessed correctly but has not won yet
 			hint['num']--;
 
-			if (hint['num'] == 0) { // the team is out of guesses
+			if (hint['num'] == 0) { 	// the team is out of guesses
 				turn = (turn == 1) ? 2 : 1;
 				io.emit('gameState', {
 					type: 'vote',
@@ -493,9 +529,10 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 				});
 				io.emit('message', {
 					type: 'system',
-					text: `"${vote}" was correct. Team ${(!(turn == 1)) ? 'Red' : 'Blue'} is out of guesses. Switching teams...`
+					text: `"${vote}" was correct. Team ${(turn == 1) ? 'Blue' : 'Red'} is out of guesses. Switching teams...`
 				});
-			} else { // the team still has more guesses
+			} else { 					// the team still has more guesses
+				guessCorrect = true;
 				io.emit('gameState', {
 					type: 'vote',
 					info: {
@@ -508,7 +545,7 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 				});
 				io.emit('message', {
 					type: 'system',
-					text: `"${vote}" was correct. Team ${(!(turn == 1)) ? 'Blue' : 'Red'} still has guesses. Restarting timer...`
+					text: `"${vote}" was correct. Team ${(turn == 1) ? 'Red' : 'Blue'} still has ${hint['num']} guesses left. Restarting timer...`
 				});
 			}
 			words[vote]['revealed'] = 1;
