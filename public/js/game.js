@@ -15,31 +15,31 @@ while (!nick) {
     nick = prompt("Please enter a nickname below: \n" + getGameRules(), 'Onipy');      // temp
 }
 
-var tempBoard = [ { word: 'ninja', team: 0 },
-  { word: 'australia', team: 1 },
-  { word: 'square', team: 0 },
-  { word: 'princess', team: 0 },
-  { word: 'point', team: 1 },
-  { word: 'bomb', team: 2 },
-  { word: 'round', team: 0 },
-  { word: 'undertaker', team: 0 },
-  { word: 'state', team: 0 },
-  { word: 'jet', team: 2 },
-  { word: 'litter', team: 1 },
-  { word: 'trunk', team: 0 },
-  { word: 'fall', team: 2 },
-  { word: 'note', team: 2 },
-  { word: 'cover', team: 1 },
-  { word: 'angel', team: 1 },
-  { word: 'missile', team: 1 },
-  { word: 'glove', team: 1 },
-  { word: 'pool', team: 2 },
-  { word: 'table', team: 1 },
-  { word: 'lab', team: 1 },
-  { word: 'cycle', team: 2 },
-  { word: 'bell', team: 2 },
-  { word: 'check', team: 3 },
-  { word: 'sock', team: 2 } ]
+// var tempBoard = [ { word: 'cook', team: 2, revealed: 0 },
+//   { word: 'deck', team: 1, revealed: 0 },
+//   { word: 'aztec', team: 0, revealed: 0 },
+//   { word: 'ninja', team: 2, revealed: 0 },
+//   { word: 'ray', team: 0, revealed: 0 },
+//   { word: 'engine', team: 1, revealed: 0 },
+//   { word: 'teacher', team: 3, revealed: 0 },
+//   { word: 'thumb', team: 0, revealed: 0 },
+//   { word: 'hospital', team: 2, revealed: 0 },
+//   { word: 'strike', team: 0, revealed: 0 },
+//   { word: 'eagle', team: 0, revealed: 0 },
+//   { word: 'olympus', team: 1, revealed: 0 },
+//   { word: 'ring', team: 1, revealed: 0 },
+//   { word: 'scientist', team: 1, revealed: 0 },
+//   { word: 'pool', team: 2, revealed: 0 },
+//   { word: 'pin', team: 1, revealed: 0 },
+//   { word: 'antarctica', team: 2, revealed: 0 },
+//   { word: 'roulette', team: 2, revealed: 0 },
+//   { word: 'witch', team: 2, revealed: 0 },
+//   { word: 'skyscraper', team: 1, revealed: 0 },
+//   { word: 'lion', team: 0, revealed: 0 },
+//   { word: 'dog', team: 0, revealed: 0 },
+//   { word: 'web', team: 1, revealed: 0 },
+//   { word: 'berlin', team: 1, revealed: 0 },
+//   { word: 'cell', team: 2, revealed: 0 } ]
 
 // CLIENT GAME LOGIC (and interactions with server)
 $(function () {
@@ -104,11 +104,12 @@ $(function () {
             var player = GAME_STATE['players'][i];
             if (player['id'] == GAME_STATE['id']) {
                 // show myself
-                $('#player-ready-form').append(`<p id="${player['id']}" class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
-                                                    <span class="name">${player['nickname']}</span>
-                                                    <span class="role">${player['role']}</span>
-                                                    <input id="ready-check" onclick="sendReady(this)" type="checkbox">
-                                                </p>`);
+                $('#player-me').append(`<p id="${player['id']}" class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
+                                            <span class="name">${player['nickname']}</span>
+                                            <span class="role">[${player['role']}]</span>
+                                            <input id="ready-check" onclick="sendReady(this)" type="checkbox">
+                                            <label for="ready-check"> Ready: </label>
+                                        </p>`);
             } else { // show other players
                 showPlayer(GAME_STATE['players'][i]);
             }
@@ -119,15 +120,35 @@ $(function () {
         chatMessage(msg['text'], msg['type']);
     });
 
-    socket.on('newGame', function() {           // event: newGame - server response for all clients are ready -> starting a new game
+    socket.on('newGame', function(initGameData) {           // event: newGame - server response for all clients are ready -> starting a new game
         // remove ready form checkbox
         // check if spymaster? or just catch server's 'key' emit
         // clean data (start new game)
         newGame();
+        GAME_STATE['board'] = initGameData['board'];
+        if  (initGameData.includes('key')) {
+            GAME_STATE['key'] = initGameData['key'];
+        }
+        createBoard(initGameData['board']);
     });
 
-    socket.on('key', function() {              // event: key - server sending solution key to spymaster clients
-        return;
+    socket.on('startTimer', function(seconds) {
+        startNewTimer(seconds);
+        if (!GAME_STATE['running'] & GAME_STATE['time'] < 0) {
+            socekt.emit('nextPhaseReady');
+        }
+    });
+
+    socket.on('gameState', function(state) {
+        console.log(state);
+        // if (state['info']['correct']) {
+        updateBoardImmediate($(`#word-${state['info']['word']}`, state['info']['wordTeam'], 1));
+        GAME_STATE['turn'] = state['info']['turn'];
+        // }
+        if (state['type'] == 'end') {
+            var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
+            chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
+        }
     });
 });
 
@@ -135,8 +156,8 @@ $(function () {
 // DISPLAY METHODS
 function clearPlayers() {
     $('#players').html('');                 // remove current players
-    $('#player-ready-form').html('');       // remove self
-    createBoard(tempBoard);                 // FIXME: REMOVE TO USE IN FLOW PROPERLY
+    $('#player-me').html('');       // remove self
+    // createBoard(tempBoard);                 // FIXME: REMOVE TO USE IN FLOW PROPERLY
 }
 
 function chatMessage(msgText, type) {
@@ -150,7 +171,7 @@ function createBoard(board) {
     for (var i = 0; i < board.length; i++) {
         word = board[i];                                                    // word data from board from server
         wordEl = $(`.word-${i}`);                                           // grab the word button on board
-        wordEl.val(word['word']);                                                   // edit word's value (text)
+        wordEl.val(word['word']);                                           // edit word's value (text)
         wordEl.attr('id', `word-${word['word']}`);                          // update word's id
         updateBoardImmediate(wordEl, word['team'], word['revealed']);       // update word's color
     }
@@ -159,7 +180,7 @@ function createBoard(board) {
 function showPlayer(player) {
      $('#players').append(`<li id="${player['id']}" class="player ${player['team'] == 1 ? 'red': 'blue'}">
                                 <span class="name">${player['nickname']}</span>
-                                <span class="role">${player['role']}</span>
+                                <span class="role">[${player['role']}]</span>
                             </li>`);
 }
 
@@ -252,9 +273,9 @@ function newGameData() {
         votes: [],
         words: {},      // state of the board
         players: [],    // server's "clients"
+        board: [].
         running: false,
         socket: null,
-        phase: null,
         id: null,
         turn: 1}        // red: 1, blue: 2
 }

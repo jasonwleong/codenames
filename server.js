@@ -56,7 +56,7 @@ app.post('/api/clients', function(req, res) {
 	(client.ready === "true") ? numChecks++ : numChecks--;
 	console.log("numChecks: " + numChecks);
 	console.log(clients);
-	if ((numChecks == clients.length) & (numChecks > 4)){
+	if ((numChecks == clients.length) & (numChecks >= 4)){
 		console.log('createNewGame()');
 		createNewGame(getSocketByID(client.id));
 	}
@@ -304,7 +304,7 @@ function createNewGame(socket) {
 	turn = 1;
 	phase = 'hinting';
 
-	// assignSpymasters(); // implementation for getting ready checks not done, so this will be put on hold or it will throw an error
+	assignSpymasters(); // implementation for getting ready checks not done, so this will be put on hold or it will throw an error
 
 	// if spymaster, team is revealed for each word
 	// if not spymaster, all words are neutral
@@ -338,6 +338,8 @@ function createNewGame(socket) {
 		}
 	}
 	console.log('game initialization finished')
+	io.emit('clients', clients);
+	
 }
 
 function endGame() {
@@ -400,12 +402,22 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 		if (turn == 1) {
 			io.emit('gameState', {
 				type: 'end',
-				info: 2
+				info: {
+					word: vote,
+					winner: 2,
+					wordTeam: 3,
+					turn: turn
+				}
 			});
 		} else {
 			io.emit('gameState', {
 				type: 'end',
-				info: 1
+				info: {
+					word: vote,
+					winner: 1,
+					wordTeam: 3,
+					turn: turn
+				}
 			});
 		}
 	}
@@ -414,7 +426,11 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 		if (checkWinCondition()) { // checked if team won
 			io.emit('gameState', {
 				type: 'end',
-				info: turn
+				info: {
+					word: vote,
+					winner: turn,
+					turn: turn
+				}
 			});
 		} else { // team guessed correctly but has not won yet
 			hint['num']--;

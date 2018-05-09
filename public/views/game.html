@@ -4,6 +4,7 @@
 	<meta charset="UTF-8">
     <title>Codenames</title>
 	<link rel="stylesheet" type="text/css" href="css/main.css">
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto" >
 	<!-- dependencies for frontend -->
 	<script type="text/javascript" src="libs/jquery-3.3.1.min.js"></script>
 	<script src="/socket.io/socket.io.js"></script>
@@ -24,14 +25,16 @@
 		<h2>Points</h2>
 		<div id="points-list">
 				<ul id="points">
-					<li>Red: </li>
-					<li>Blue:</li>
+					<li class="red">Red Team: </li>
+					<li class="blue">Blue Team: </li>
 				</ul>
 		</div>
 		<h2>Players</h2>
 		<div id="players-list">
-			<form id="player-ready-form" name="player-ready-form">
-			</form>
+			<h3 class="players-subheading">Me</h3>
+			<div id="player-me">
+			</div>
+			<h3 class="players-subheading">Others</h3>
 			<ul id="players">	<!-- other players -->
 			</ul>
 		</div>
@@ -47,9 +50,9 @@
 		<div id="word-board">
 			<div class="word-btn-row clearfix">
 				<!-- TODO @jleong: remove? and create/fill buttons with pub -->
-				<input class="word word-0" type="button" value="TESTING">
-				<input class="word word-1" type="button" value="PRAYING">
-				<input class="word word-2" type="button" value="PLEASE">
+				<input class="word word-0" type="button" value>
+				<input class="word word-1" type="button" value>
+				<input class="word word-2" type="button" value>
 				<input class="word word-3" type="button" value>
 				<input class="word word-4" type="button" value>
 			</div>

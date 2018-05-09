@@ -13,12 +13,13 @@
 /* PAGE */
 html {
 	height: 100%;
-	background: azure;
+	background-image: url("/img/woodbackground.jpg");
 }
 
 body {
 	/*margin: 0px 8px 0px 0px;*/
-	font: 2vh Helvetica, Arial;
+	font: 2vh 'Roboto', Helvetica, Arial;
+	color: wheat;
 	height: 100%;	/* locks app to single page */
 	margin: 0px;
 	max-width: 100%;
@@ -34,7 +35,7 @@ body {
 
 /* HEADINGS */
 #title {
-	color: darkgreen;
+	color: azure;
 	text-align: center;
 	font-size: 6vh;
 	margin: 0;
@@ -45,6 +46,11 @@ h2 {
 	text-align: center;
 	margin: 0;
 	padding: 1vh;
+	/*color: azure;*/
+}
+
+h1, h2, h3 {
+	color: azure;
 }
 
 /* BUTTONS (input[button]) */
@@ -52,7 +58,7 @@ input[type=button],
 button {
 	background-color: #4CAF50;
 	border: 0px; /* remove border */
-    outline: 1px solid green !important; /* use outline for offset */
+    outline: 1px solid black !important; /* use outline for offset */
     outline-offset: -1px;
     color: white;
     padding: 3% 8%;
@@ -96,22 +102,61 @@ button:active {
 	overflow-x: visible;
 }
 
+/* POINTS */
+#points {
+	/*list-style-type: none;*/
+}
+
+#points li {
+	padding-left: 80%;
+	margin-left: -80%;
+}
+
 /* PLAYERS */
-#players {
-	border: 1px solid pink;
-	list-style-type: none;
+h3.players-subheading {
+	padding-left: 10%;
+}
+
+.player-row {
+	padding-left: 2vw;
+}
+
+.role {
+	font-style: italic;
+}
+
+label[for=ready-check] {
+	margin: 0;
+	padding: 0;
+	float: right;
+	margin-right: 3%;
 }
 
 #players-list input[type=checkbox] {
 	margin: 0;
 	padding: 0;
 	float: right;
-	margin-right: 10%;
-	margin-top: 0.2vh;
+	margin-right: 3%;
+	margin-top: 0.1vh;
 }
 
-#ready-check {
-	
+#players {
+	/*list-style-type: none;*/
+}
+
+#players li {
+	padding-left: 80%;
+	margin-left: -80%;
+}
+
+/* VOTES */
+#votes {
+	/*list-style-type: none;*/
+}
+
+#votes li {
+	padding-left: 80%;
+	margin-left: -80%;
 }
 
 /* WORD BOARD (and buttons/inputs) */
@@ -132,6 +177,59 @@ button:active {
 
 .word-btn-row input:not(:last-child) {
     border-right: none;
+}
+
+.word[color=team-0-0] {
+	background: linear-gradient(#E5AF6F, tan);
+}
+
+.word[color=team-1-0] {
+	background: linear-gradient(#E12828, darkred);
+}
+
+.word[color=team-2-0] {
+	background: linear-gradient(#5696FF, darkblue);
+}
+
+.word[color=team-3-0] {
+	background: linear-gradient(darkgrey, black);
+}
+
+.word[color=team-0-0]:hover {
+	background: linear-gradient(#E5AF6F, #E5AF6F);
+}
+
+.word[color=team-1-0]:hover {
+	background: linear-gradient(#E12828, #E12828);
+}
+
+.word[color=team-2-0]:hover {
+	background: linear-gradient(#5696FF, #5696FF);
+}
+
+.word[color=team-3-0]:hover {
+	background: linear-gradient(darkgrey, darkgrey);
+}
+
+/*https://www.w3schools.com/css/tryit.asp?filename=trycss_buttons_fade*/
+.word[color=team-0-1],
+.word[color=team-0-0]:active {
+	background: linear-gradient(tan, tan) !important;
+}
+
+.word[color=team-1-1],
+.word[color=team-1-0]:active {
+	background: linear-gradient(darkred, darkred) !important;
+}
+
+.word[color=team-2-1],
+.word[color=team-2-0]:active {
+	background: linear-gradient(darkblue, darkblue) !important;
+}
+
+.word[color=team-3-1],
+.word[color=team-3-0]:active {
+	background: linear-gradient(black, black) !important;
 }
 
 /* CHAT */
@@ -159,12 +257,12 @@ button:active {
 }
 
 #messages li:nth-child(odd) {
-	background: lightgrey;
+	background: dimgrey;
 }
 
 #messages li.system {	/* system messages */
 	font-style: italic;
-	color: purple;
+	color: limegreen;
 }
 
 #messages li.error {	/* client only messages */
@@ -207,13 +305,13 @@ button#disconnect:hover {
 
 button#rules {
 	width: 100%;
-	background: blue;
+	/*background: blue;*/
 }
 
-button#rules:hover {
+/*button#rules:hover {
 	background: lightblue;
 	color: black;
-}
+}*/
 
 button#disconnect:active,
 button#rules:active {
@@ -226,15 +324,6 @@ button#rules:active {
 }
 
 .blue {
-	background-color: lightblue;
+	background-color: blue;
 }
-
-/*form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }*/
-/*form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }*/
-/*form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }*/
-
-
-
-
-
 
