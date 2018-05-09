@@ -72,6 +72,9 @@ $(function () {
         socket.emit('message', msg);
         return clearChatAndEndForm();
     });
+    $('.word').click(function() {
+        socket.emit('message', {type: 'command', cmdType: 'vote', text: $(this).val()});
+    });
 
     socket.on('userID', function(id) {
         GAME_STATE['id'] = id;
@@ -97,14 +100,19 @@ $(function () {
         }
     });
 
+    socket.on('votes', function(votes) {
+        GAME_STATE['votes'] = votes;
+        clearVotes();
+        for (var i = 0; i < votes.length; i ++) {
+            showVote(votes[i]);
+        }
+    });
+
     socket.on('message', function(msg) {        // event: message - server has a new system message or client chat
         chatMessage(msg['text'], msg['type']);
     });
 
     socket.on('newGame', function(initGameData) {           // event: newGame - server response for all clients are ready -> starting a new game
-        // remove ready form checkbox
-        // check if spymaster? or just catch server's 'key' emit
-        // clean data (start new game)
         GAME_STATE = newGameData();                         // new data for client
         GAME_STATE['id'] = initGameData['id']               // set client's id (socket)
         GAME_STATE['role'] = initGameData['role'];          // set client's role
@@ -131,7 +139,10 @@ $(function () {
             var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
             chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
         }
-        showScores();
+        else {
+            clearVotes();
+            showScores();
+        }
     });
 
     // regular document ready functions
@@ -155,6 +166,10 @@ function clearPlayers() {
 
 function clearPlayerReady() {
     $('.ready-check').remove();      // remove ready checkbox and label
+}
+
+function clearVotes() {
+    $("#votes").html('');
 }
 
 function chatMessage(msgText, type) {
@@ -181,15 +196,22 @@ function createBoard(board) {
 // }
 
 function showPlayer(player) {
-     $('#players').append(`<li id="${player['id']}" class="player ${player['team'] == 1 ? 'red': 'blue'}">
+     $('#players').append(`<p id="${player['id']}" class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
                                 <span class="name">${player['nickname']}</span>
                                 <span class="role">[${player['role']}]</span>
-                            </li>`);
+                            </p>`);
 }
 
 function showScores() {
     $('#red-score').html(`${GAME_STATE['scores'][1]} / 9`);
     $('#blue-score').html(`${GAME_STATE['scores'][2]} / 8`);
+}
+
+function showVote(vote) {
+    $('#votes').append(`<p id="${vote['nickname']}-vote" class="vote-row ${vote['turn'] == 1 ? 'red': 'blue'}">
+                            <span class="vote-player">${vote['nickname']}:</span>
+                            <span class="vote-word">${vote['word']}</span>
+                        </p>`);
 }
 
 // GAME METHODS - usually requires usage/read of GAME_STATE data
@@ -214,13 +236,11 @@ function updateBoardImmediate(element, team, revealed) {
 
 function sendReady(checkbox) {
     $.post('api/clients', {id: GAME_STATE['id'], ready: checkbox.checked}, function(data, status, res) {
-        console.log(data);          // remove
         if (status == 400) {
             chatMessage(res, 'error')
         }
     });
     console.log('sendReady complete');
-    // socket.emit('readyGame', checkbox.checked)
 }
 
 function startNewTimer(socket, time) {          // socket to ping server to continue game logic, time in seconds
@@ -230,9 +250,7 @@ function startNewTimer(socket, time) {          // socket to ping server to cont
         document.getElementById("time").innerHTML = "Time: " + time + "s";
         if (time < 0) {
             stopTimerAndWait();
-            // if (!GAME_STATE['running'] & GAME_STATE['time'] <= 0) {
             socket.emit('nextPhaseReady');
-            // }
         }
         time--;
         GAME_STATE['time'] = time;
@@ -259,7 +277,6 @@ function clearChatAndEndForm() {
 }
 
 function getGameRules() {
-    //return getHelpMsgs().join(' ');
     return "How-To-Play:\n" +
             "Codenames is a guessing board game that is designed to be played with 4-8 players. Initially, players split into two different teams, either red or blue, and "  +
             "each team designates a spymaster. In front of everyone is a 5x5 grid board with a random noun placed on each of the tiles. The spymasters are then each given the " +
@@ -294,3 +311,22 @@ function newGameData() {
         id: null,
         turn: 1}        // red: 1, blue: 2
 }
+
+// UX FEATURES
+
+// disable zoom from https://stackoverflow.com/questions/27116221/prevent-zoom-cross-browser
+$(document).keydown(function(event) {
+if (event.ctrlKey==true && (event.which == '61' || event.which == '107' || event.which == '173' || event.which == '109'  || event.which == '187'  || event.which == '189'  ) ) {
+        event.preventDefault();
+     }
+    // 107 Num Key  +
+    // 109 Num Key  -
+    // 173 Min Key  hyphen/underscor Hey
+    // 61 Plus key  +/= key
+});
+
+$(window).bind('mousewheel DOMMouseScroll', function (event) {
+       if (event.ctrlKey == true) {
+       event.preventDefault();
+       }
+});

@@ -61,6 +61,7 @@ app.post('/api/clients', function(req, res) {
 	if ((numChecks == clients.length) & (numChecks >= 4)) {
 		createNewGame();
 	}
+	// io.emit('message', {text: `${clientsDict[client.id]['nickname']} has readied up!`, type: 'system'})
 	res.send('Server has started a new game with createNewGame()');
 });
 app.get('/api/messages', function(req, res) {
@@ -200,7 +201,8 @@ io.on('connection', function(socket) {
 							votes.push({
 								id: socket.id,
 								nickname: nickname,
-								word: inputs[0].toLowerCase()
+								word: inputs[0].toLowerCase(),
+								turn: turn
 							});
 							console.log(votes);
 							io.emit('votes', votes);

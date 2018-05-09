@@ -76,7 +76,7 @@ button:active {
     background-color: green;
 }
 
-/* SECTIONS */
+/* SECTIONS */x`
 #header {
 	height: 10%;
 }
@@ -103,13 +103,19 @@ button:active {
 }
 
 /* POINTS */
-#points {
-	/*list-style-type: none;*/
+#points p {
+	margin: 0;
+	text-align: center;
 }
 
-#points li {
-	padding-left: 80%;
-	margin-left: -80%;
+#points .points-row {
+	padding-top: 1%;
+	padding-bottom: 1%;
+	margin-top: 1.5%;
+}
+
+.points-row span.score {
+	margin-left: -2.1vw;
 }
 
 /* PLAYERS */
@@ -118,10 +124,13 @@ h3.players-subheading {
 }
 
 .player-row {
-	padding-left: 5%;
+	margin: 0;
+	margin-top: 0.5%;
+	padding-top: 1%;
+	padding-bottom: 1%;
 }
 
-#player-me .name {
+#players-list .name {
 	padding-left: 2.1vw;
 }
 
@@ -134,6 +143,7 @@ label[for=ready-check] {
 	padding: 0;
 	float: right;
 	margin-right: 3%;
+	display: inline;
 }
 
 #players-list input[type=checkbox] {
@@ -142,26 +152,23 @@ label[for=ready-check] {
 	float: right;
 	margin-right: 3%;
 	margin-top: 0.1vh;
-}
-
-#players {
-	list-style-type: none;
-}
-
-#players li {
-	padding-left: 80%;
-	margin-left: -80%;
-	border-bottom: 1px solid beige;
+	display: inline;
 }
 
 /* VOTES */
 #votes {
-	/*list-style-type: none;*/
+
 }
 
-#votes li {
-	padding-left: 80%;
-	margin-left: -80%;
+.vote-row {
+	margin: 0;
+	margin-top: 0.5%;
+	padding-top: 1%;
+	padding-bottom: 1%;
+}
+
+.vote-row .vote-player {
+	padding-left: 2.1vw;
 }
 
 /* WORD BOARD (and buttons/inputs) */
@@ -319,7 +326,7 @@ button#rules {
 	color: black;
 }*/
 
-button#disconnect:active,
+/*button#disconnect:active,*/
 button#rules:active {
 	background: black;
 	color: white;
