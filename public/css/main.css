@@ -294,14 +294,14 @@ button#send {
 }
 
 /* ELEMENT OVERRIDES */
-button#disconnect {
+/*button#disconnect {
 	width: 100%;
 	background: darkred;
 }
 
 button#disconnect:hover {
 	background: red;
-}
+}*/
 
 button#rules {
 	width: 100%;

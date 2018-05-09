@@ -18,38 +18,17 @@ while (!nick) {
     nick = prompt("Please enter a nickname below: \n" + getGameRules(), 'Onipy');      // temp
 }
 
-// var tempBoard = [ { word: 'cook', team: 2, revealed: 0 },
-//   { word: 'deck', team: 1, revealed: 0 },
-//   { word: 'aztec', team: 0, revealed: 0 },
-//   { word: 'ninja', team: 2, revealed: 0 },
-//   { word: 'ray', team: 0, revealed: 0 },
-//   { word: 'engine', team: 1, revealed: 0 },
-//   { word: 'teacher', team: 3, revealed: 0 },
-//   { word: 'thumb', team: 0, revealed: 0 },
-//   { word: 'hospital', team: 2, revealed: 0 },
-//   { word: 'strike', team: 0, revealed: 0 },
-//   { word: 'eagle', team: 0, revealed: 0 },
-//   { word: 'olympus', team: 1, revealed: 0 },
-//   { word: 'ring', team: 1, revealed: 0 },
-//   { word: 'scientist', team: 1, revealed: 0 },
-//   { word: 'pool', team: 2, revealed: 0 },
-//   { word: 'pin', team: 1, revealed: 0 },
-//   { word: 'antarctica', team: 2, revealed: 0 },
-//   { word: 'roulette', team: 2, revealed: 0 },
-//   { word: 'witch', team: 2, revealed: 0 },
-//   { word: 'skyscraper', team: 1, revealed: 0 },
-//   { word: 'lion', team: 0, revealed: 0 },
-//   { word: 'dog', team: 0, revealed: 0 },
-//   { word: 'web', team: 1, revealed: 0 },
-//   { word: 'berlin', team: 1, revealed: 0 },
-//   { word: 'cell', team: 2, revealed: 0 } ]
-
 // CLIENT GAME LOGIC (and interactions with server)
 $(function () {
     var socket = io();
     GAME_STATE = newGameData();
     socket.emit('newUser', nick);
-
+    setTimeout(function() {
+        chatMessage('Click the "Ready?" checkbox to queue for a game to start!', 'system');
+    }, 1000);
+    setTimeout(function() {
+        chatMessage('You can always check the rules by clicking the "Game Rules" button or try typing "/help" for more information.', 'system');
+    }, 3000);
     // Player sends a chat message/command
     $('#user-input-form').submit(function(e) {
         e.preventDefault();
@@ -96,7 +75,6 @@ $(function () {
 
     socket.on('userID', function(id) {
         GAME_STATE['id'] = id;
-        console.log('my id: ' + id);
     });
 
     // Handling server emission/responses
@@ -110,8 +88,8 @@ $(function () {
                 $('#player-me').append(`<p id="${player['id']}" class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
                                             <span class="name">${player['nickname']}</span>
                                             <span class="role">[${player['role']}]</span>
-                                            <input id="ready-check" onclick="sendReady(this)" type="checkbox">
-                                            <label for="ready-check"> Ready: </label>
+                                            <input id="ready-check" class="ready-check" onclick="sendReady(this)" type="checkbox">
+                                            <label for="ready-check" class="ready-check">Ready?</label>
                                         </p>`);
             } else { // show other players
                 showPlayer(GAME_STATE['players'][i]);
@@ -137,6 +115,7 @@ $(function () {
         } else {
             createBoard(initGameData['board']);
         }
+        clearPlayerReady();
     });
 
     socket.on('startTimer', function(seconds) {
@@ -144,27 +123,31 @@ $(function () {
     });
 
     socket.on('gameState', function(state) {
-        console.log(state);
-        // if (state['info']['correct']) {
         updateBoardImmediate($(`#word-${state['info']['word']}`, state['info']['wordTeam'], 1));
+        GAME_STATE['scores'][state['info']['wordTeam']]++;
         GAME_STATE['turn'] = state['info']['turn'];
-        // }
         if (state['type'] == 'end') {
             var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
             chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
         }
+        showScores();
     });
 });
 
 // DISPLAY METHODS
 function clearPlayers() {
-    $('#players').html('');                 // remove current players
-    $('#player-me').html('');       // remove self
-    // createBoard(tempBoard);                 // FIXME: REMOVE TO USE IN FLOW PROPERLY
+    $('#players').html('');             // remove current players
+    $('#player-me').html('');           // remove self
+}
+
+function clearPlayerReady() {
+    $('.ready-check').remove();      // remove ready checkbox and label
 }
 
 function chatMessage(msgText, type) {
     $('#messages').append($(`<li class="${type}">`).text(msgText));
+    var chat = document.getElementById('chat-history');
+    chat.scrollTop = chat.scrollHeight;
 }
 
 function createBoard(board) {
@@ -187,27 +170,40 @@ function showPlayer(player) {
                             </li>`);
 }
 
-function showScore() {
-    // calculate by counting values on board
+function showScores() {
+    $('#red-score').html(`${GAME_STATE['scores'][1]} / 9`);
+    $('#blue-score').html(`${GAME_STATE['scores'][2]} / 8`);
 }
 
-// GAME METHODS - requires usage of GAME_STATE variables
-function sendReady(checkbox) {
-    $.post('api/clients', {id: GAME_STATE['id'], ready: checkbox.checked}, function(data, status, res) {
-        console.log(data);          // remove
-    });
-    console.log('sendReady complete');
-    // socket.emit('readyGame', checkbox.checked)
+// GAME METHODS - usually requires usage/read of GAME_STATE data
+function disconnect(refresh) {
+    var dc = confirm('Are you sure you want to leave? If there less than four players remain in an ongoing game, the game will end for everyone!');
+    refresh ? location.reload() : open(location, '_self').close();
 }
 
 function updateBoard(word) {
     // word: {word: string word, team: team own, revealed: if word was touched}
-    $(`#word-${word['word']}`).attr("color", `team-${word['team']}-${word['revealed']}`);
+    if (GAME_STATE['role'] == 'spymaster') {
+        $(`#word-${word['word']}`).attr("color", `team-${word['team']}-${word['revealed']}`);
+    } else {
+        $(`#word-${word['word']}`).attr("color", `team-${word['team']}-0`);
+    }
 }
 
 function updateBoardImmediate(element, team, revealed) {
     // updates word on board with a given jquery element
     element.attr("color", `team-${team}-${revealed}`);
+}
+
+function sendReady(checkbox) {
+    $.post('api/clients', {id: GAME_STATE['id'], ready: checkbox.checked}, function(data, status, res) {
+        console.log(data);          // remove
+        if (status == 400) {
+            chatMessage(res, 'error')
+        }
+    });
+    console.log('sendReady complete');
+    // socket.emit('readyGame', checkbox.checked)
 }
 
 function startNewTimer(socket, time) {          // socket to ping server to continue game logic, time in seconds
@@ -262,10 +258,10 @@ function getGameRules() {
 
 function getHelpMsgs() {
     // this may or may not actually show in 2 lines in chat
-    return ["/vote [word] : Players(excluding the Spymaster) may use /vote to vote for the word that they want to guess\n",
-            "/hint [word] [number] : Spymaster may use the /hint command to send their hint to their team\n",
+    return ["/help : Displays this message. Click 'Game Rules' for more information.\n",
             "/turn : Displays a message telling which team's turn/phase it currently is.\n",
-            "/help : Instantly wins the game for you and your team\n"];
+            "/vote [word] : Agents (not Spymasters) may use /vote to vote for the word that they want to guess.\n",
+            "/hint [word] [number] : Spymaster may use the /hint command to send their hint to their team.\n"];
 }
 
 function newGameData() {
@@ -275,7 +271,7 @@ function newGameData() {
         words: {},      // state of the board
         players: [],    // server's "clients"
         board: [],
-        scores: {1: 0, 2: 0},
+        scores: {0: 0, 1: 0, 2: 0, 3: 0},
         running: false,
         socket: null,
         id: null,

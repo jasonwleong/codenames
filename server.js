@@ -6,8 +6,6 @@ var path = require('path');
 var fs = require('fs');
 var bodyParser = require('body-parser');
 
-
-
 // text files containing words
 var allWordsText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'words.txt'), 'utf8').toString()
 var dictionaryText = fs.readFileSync(path.join(__dirname, 'public', 'libs', 'dictionary.txt'), 'utf8').toString()
@@ -19,7 +17,7 @@ var messages = [];		// array of objects -> { type: 'system'|'chat'|'error', text
 var votes = [];			// array of objects -> { id: socketid, nickname: nickname, word: (String)word }
 var words = {};			// dictionary -> key = (String)word, value = { team: 1|2, revealed: 0|1 }
 var hint = {};			// current hint -> {word: 'blah', num: x}
-var turn;				// current turn in game: 1|2 -> team 1 is red, team 2 is blue
+var turn = 0;			// current turn in game: 1|2 -> team 1 is red, team 2 is blue
 var phase;				// hinting | guessing
 var timer;				// global variable for time set by timer
 var numTimers = 0;		// when timers go out on the front end, message is emitted to server. this is a count of # of timers received
@@ -35,7 +33,6 @@ var dictionary = dictionaryText.includes('\r') ? dictionaryText.split('\r\n') : 
 // 		type: hint	      | vote                           | end
 // 		info: hinted word | {word:(String),correct:(bool)} | int of team who won
 // 	}
-
 
 // ROUTES (SETUP)
 app.use(express.static(path.join(__dirname, 'public/')));
@@ -54,14 +51,15 @@ app.get('/api/clients/names', function(req, res) {
 	res.send([clients.map(c => c['nickname'])]);
 });
 app.post('/api/clients', function(req, res) {
+	if (!gameInit) {
+		res.status(400).send('A game is currently running. Please try again later.');
+	}
 	client = req.body;
 	(client.ready === "true") ? numChecks++ : numChecks--;
-	// console.log("numChecks: " + numChecks);
-	// console.log(clients);
-	if ((numChecks == clients.length) & (numChecks >= 4)){
+	if ((numChecks == clients.length) & (numChecks >= 4)) {
 		createNewGame();
 	}
-	res.send('server ack client post sendReady()');
+	res.send('Server has started a new game with createNewGame()');
 });
 app.get('/api/messages', function(req, res) {
 	res.send(messages);
@@ -73,12 +71,19 @@ app.get('/api/messages/?type=:type', function(req, res) {
 app.get('/api/votes', function(req, res) {
 	res.send(votes);
 });
+app.get('api/dictionary', function(req, res) {
+	res.send(dictionary);
+})
 
 // CONNECTION
 // very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
 io.on('connection', function(socket) {
 
 	var nickname;
+
+	if (turn != 0) {		// reject any new connections while a game is in progress
+		socket.conn.close();
+	}
 
 	// receive connections
 	socket.on('newUser', function(nick) {
@@ -131,9 +136,10 @@ io.on('connection', function(socket) {
 		messages.push(msg);
 
 		// check if <4 players - if so force game quit (emit endGame?)
-		// if (clients.length < 4) {
-		// 	endGame();
-		// }
+		if ((turn != 0) & (clients.length < 4)) {
+			io.emit('message', {type: 'system', text: 'There are less than four players connected, ending game'})
+			endGame();
+		}
 	});
 
 	socket.on('message', function(msg) {
@@ -310,6 +316,7 @@ function createNewGame() {
 
 	// assign spymasters and send this data to all clients
 	assignSpymasters();
+	io.emit('clients', clients);
 
 	var keys = Object.keys(words);				// array of the words
 	var board = [];								// board to be processed twice (for agent, then spymasters)
@@ -338,7 +345,6 @@ function createNewGame() {
 		var socket = getSocketByID(clients[i]['id']);
 		socket.emit('newGame', newGameData);						// emit personalized data to each client
 	}
-	io.emit('clients', clients);
 	io.emit('startTimer', 10);				// FIXME: revert to 60
 	io.emit('message', {
 		type: 'system',
@@ -412,14 +418,11 @@ function endGame() {
 	votes = [];
 	words = {};
 	hint = {};
-	var turn;
+	var turn = 0;
 	var phase;
 	var numTimers;
 	var numChecks;
 	var timer;
-	if (clients.length < 4) {
-		io.emit('message', {type: 'system', text: 'There are less than four players connected, ending game'})
-	}
 	gameInit = true;
 	guessCorrect = false;
 }

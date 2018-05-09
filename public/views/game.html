@@ -18,15 +18,14 @@
 	<!-- LEFT CONTENT -->
 	<div class="left-content">
 		<div class="clearfix">
-			<button id="disconnect">Disconnect</button>
 			<button id="rules" onclick="alert(getGameRules())">Game Rules</button>
 		</div>
 		<h2 id="time">Time</h2>
 		<h2>Points</h2>
 		<div id="points-list">
 				<ul id="points">
-					<li class="red">Red Team: </li>
-					<li class="blue">Blue Team: </li>
+					<li class="red">Red Team: <span id="red-score"></span></li>
+					<li class="blue">Blue Team: <span id="blue-score"></span></li>
 				</ul>
 		</div>
 		<h2>Players</h2>
