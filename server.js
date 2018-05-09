@@ -316,7 +316,6 @@ function createNewGame() {
 		var socket = getSocketByID(clients[i]['id']);
 		socket.emit('newGame', newGameData);						// emit personalized data to each client
 	}
-	io.emit('newGame', newGameData);
 	io.emit('clients', clients);
 	io.emit('startTimer', 10);				// FIXME: revert to 60
 	io.emit('message', {
