@@ -1,10 +1,13 @@
 # Codenames
 Final project for CS 158A (Computer Networks) in Spring 18 at SJSU with Professor Mortezaei. Created by Jason Leong, Patrick Leung, and Hangyi Gu.
 
-# Setup 
+# Link
+https://tinyurl.com/y99lvefx
+
+# Setup
 ```
 npm install
-nodemon server.js
+node server.js
 ```
 
 # Setup on AWS EC2
