@@ -82,7 +82,6 @@ app.get('api/dictionary/?:query', function(req, res) {
 });
 
 // CONNECTION
-// very helpful: https://stackoverflow.com/questions/35680565/sending-message-to-specific-client-in-socket-io/35681189
 io.on('connection', function(socket) {
 
 	var nickname;

@@ -4,7 +4,11 @@ Final project for CS 158A (Computer Networks) in Spring 18 at SJSU with Professo
 # Link
 https://tinyurl.com/y99lvefx
 
-# Setup
+# Description
+This project was built using node.js, socket.io, express, and jQuery libraries. The Client code lives on the html page, which servers game.js (`public/js/game.js`). The Server code can be found at `server.js`.
+
+
+# Setup (local)
 ```
 npm install
 node server.js
