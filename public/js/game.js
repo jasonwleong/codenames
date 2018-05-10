@@ -63,6 +63,9 @@ $(function () {
                     }
                     text = inputs[1] + ' ' + inputs[2];
                     break;
+                default:
+                    chatMessage(`/${cmdType} is not a valid command! Read "/help" to see a list of possible commands.`, 'error');
+                    return clearChatAndEndForm();
             }
             Object.assign(msg, {text: text, cmdType: cmdType});
         } else {  // chat - send user input as is
@@ -91,9 +94,8 @@ $(function () {
                 $('#player-me').append(`<p id="${player['id']}" class="player-row ${player['team'] == 1 ? 'red': 'blue'}">
                                             <span class="name">${player['nickname']}</span>
                                             <span class="role">[${player['role']}]</span>
-                                            <input id="ready-check" class="ready-check" onclick="sendReady(this)" type="checkbox">
-                                            <label for="ready-check" class="ready-check">Ready?</label>
                                         </p>`);
+                showPlayerReady();
             } else { // show other players
                 showPlayer(GAME_STATE['players'][i]);
             }
@@ -138,6 +140,10 @@ $(function () {
             stopTimerAndWait();
             var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
             chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
+            setInterval(function() {
+                chatMessage('If you would like to player another game, you can click the "Ready?" checkbox to join an active lobby waiting for a game to start.');
+                showPlayerReady();
+            }, 1000)
         }
         else {
             clearVotes();
@@ -165,21 +171,23 @@ function clearPlayers() {
 }
 
 function clearPlayerReady() {
-    $('.ready-check').remove();      // remove ready checkbox and label
+    $('.ready-check').remove();         // remove ready checkbox and label
 }
 
 function clearVotes() {
-    $("#votes").html('');
+    $("#votes").html('');               // remove votes section
 }
 
 function chatMessage(msgText, type) {
+    // creates and appends a new message to the chatbox. CSS will  handle the different stylings of each message based on
+    // the message 'type', which is used as a class in the list element tag.
     $('#messages').append($(`<li class="${type}">`).text(msgText));
     var chat = document.getElementById('chat-history');
     chat.scrollTop = chat.scrollHeight;
 }
 
 function createBoard(board) {
-    // intended to be called only once, when entire board data is sent over
+    // intended to be called only once, when initial board data is sent over
     var word;
     var wordEl;
     for (var i = 0; i < board.length; i++) {
@@ -200,6 +208,11 @@ function showPlayer(player) {
                                 <span class="name">${player['nickname']}</span>
                                 <span class="role">[${player['role']}]</span>
                             </p>`);
+}
+
+function showPlayerReady() {
+    $('#player-me span.role').append(`<input id="ready-check" class="ready-check" onclick="sendReady(this)" type="checkbox">
+                                      <label for="ready-check" class="ready-check">Ready?</label>`);
 }
 
 function showScores() {
