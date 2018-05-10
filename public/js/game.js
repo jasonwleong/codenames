@@ -140,7 +140,7 @@ $(function () {
             stopTimerAndWait();
             var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
             chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
-            setInterval(function() {
+            setTimeout(function() {
                 chatMessage('If you would like to player another game, you can click the "Ready?" checkbox to join an active lobby waiting for a game to start.');
                 showPlayerReady();
             }, 1000)
