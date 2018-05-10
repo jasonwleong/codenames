@@ -112,10 +112,6 @@ io.on('connection', function(socket) {
 		// Display connection message
 		var msg = {type: 'system', text: nickname + ' has connected'}
 		io.emit('message', msg);
-		// for (var i = 0; i < clients.length; i++) {
-		// 	if (clients[i]['id'] != socket.id)
-		// 		socket.broadcast.to(clients[i]['id']).emit('newPlayer', newPlayer);
-		// }
 		socket.emit('userID', socket.id);
 		io.emit('clients', clients);
 		messages.push(msg);
