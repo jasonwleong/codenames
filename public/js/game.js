@@ -129,6 +129,7 @@ $(function () {
     });
 
     socket.on('startTimer', function(seconds) {
+        clearVotes();
         startNewTimer(socket, seconds);
     });
 
@@ -141,14 +142,11 @@ $(function () {
             var winner = (state['info']['winner'] == 1) ? 'Red': 'Blue'
             chatMessage(`${winner} team wins! Thanks for playing!`, 'system');
             setTimeout(function() {
-                chatMessage('If you would like to player another game, you can click the "Ready?" checkbox to join an active lobby waiting for a game to start.');
+                chatMessage('If you would like to player another game, you can click the "Ready?" checkbox to join an active lobby waiting for a game to start.', 'system');
                 showPlayerReady();
             }, 1000)
         }
-        else {
-            clearVotes();
-            showScores();
-        }
+        showScores();
     });
 
     // regular document ready functions
@@ -253,7 +251,6 @@ function sendReady(checkbox) {
             chatMessage(res, 'error')
         }
     });
-    console.log('sendReady complete');
 }
 
 function startNewTimer(socket, time) {          // socket to ping server to continue game logic, time in seconds

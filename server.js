@@ -53,16 +53,19 @@ app.get('/api/clients/names', function(req, res) {
 	res.send([clients.map(c => c['nickname'])]);
 });
 app.post('/api/clients', function(req, res) {
+	var response;
 	if (!gameInit) {
-		res.status(400).send('A game is currently running. Please try again later.');
+		response = 'A game is currently running. Please try again later.';
+		res.status(400).send(response);
 	}
 	client = req.body;
 	(client.ready === "true") ? numChecks++ : numChecks--;
 	if ((numChecks == clients.length) & (numChecks >= 4)) {
 		createNewGame();
+		response = 'Server has started a new game with createNewGame()';
 	}
-	// io.emit('message', {text: `${clientsDict[client.id]['nickname']} has readied up!`, type: 'system'})
-	res.send('Server has started a new game with createNewGame()');
+	response = `Server received readyCheck from ${client.id}`;
+	res.send(response);
 });
 app.get('/api/messages', function(req, res) {
 	res.send(messages);
@@ -204,7 +207,6 @@ io.on('connection', function(socket) {
 								word: inputs[0].toLowerCase(),
 								turn: turn
 							});
-							console.log(votes);
 							io.emit('votes', votes);
 
 							// adjust message
@@ -370,13 +372,16 @@ function createNewGame() {
 	io.emit('startTimer', 10);
 	io.emit('message', {
 		type: 'system',
-		text: 'Game is starting in 10 seconds'
+		text: 'A new game is starting in 10 seconds...'
 	});
 	console.log('game initialization finished');
 	gameRunning = true;
 }
 
 function nextPhaseReady() {
+	if (!gameRunning){
+        return;
+    }
 	numTimers++;
 	if ((numTimers == clients.length)) { // make sure everyone's timer has ended
 		if (gameInit) { // initial game state, game starts in hinting phase with team 1
@@ -474,15 +479,18 @@ function endGame() {
 	votes = [];
 	words = {};
 	hint = {};
-	var turn = 0;
-	var phase = '';
-	var numTimers = 0;
-	var numChecks = 0;
+	turn = 0;
+	phase = '';
+	numTimers = 0;
+	numChecks = 0;
 	// var timer; // not used
 	gameInit = true;
 	guessCorrect = false;
 	swapTeams = false;
 	gameRunning = false;
+	for (var i = 0; i < clients.length; i++) {	// reset all clients to agent
+		clients[i]['role'] = 'agent';
+	}
 }
 
 function assignSpymasters() {
@@ -533,6 +541,10 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 	// if wrong, send back object -> {word: (String), correct: (bool)}
 
 	if (words[vote]['team'] == 3) { // vote was the assassin,
+		io.emit('message', {
+			type: 'system',
+			text: `"${vote}" was the assassin!`
+		});
 		if (turn == 1) {
 			io.emit('gameState', {
 				type: 'end',
@@ -556,10 +568,6 @@ function validateVote(vote) { // gets word and checks if it is right or wrong
 			});
 			endGame();
 		}
-		io.emit('message', {
-			type: 'system',
-			text: `"${vote}" was the assassin! Team ${(turn == 1) ? 'Blue' : 'Red'} wins!`
-		});
 	} else {
 		if (words[vote]['team'] == turn) { // team's vote is correct
 			if (checkWinCondition()) { // checked if team won
@@ -667,7 +675,6 @@ function startNewTimer(time) {          // time in seconds
         } else {
 	        time--;
 	        timer = time;
-			console.log(`timer value: ${timer}`);
     	}
     }, 1000);
     return timer;
